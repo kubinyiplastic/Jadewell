@@ -1,0 +1,2096 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JadeWell - Admin</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f5f4; color: #1a1a1a; font-size: 14px; }
+
+  /* Sidebar */
+  .layout { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
+  .sidebar { background: #1a4d4a; color: white; padding: 20px 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+  .sidebar .logo { padding: 0 20px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 12px; }
+  .sidebar .logo h1 { font-size: 22px; letter-spacing: 1px; }
+  .sidebar .logo p { font-size: 12px; opacity: 0.7; margin-top: 2px; }
+  .sidebar nav a { display: block; padding: 12px 20px; color: rgba(255,255,255,0.8); text-decoration: none; cursor: pointer; font-size: 14px; }
+  .sidebar nav a:hover { background: rgba(255,255,255,0.05); color: white; }
+  .sidebar nav a.active { background: rgba(255,255,255,0.1); color: white; border-left: 3px solid #fbbf24; }
+  .sidebar .footer { position: absolute; bottom: 0; left: 0; right: 0; padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 12px; opacity: 0.7; }
+  .sidebar .footer button { background: rgba(255,255,255,0.1); color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; margin-top: 6px; }
+
+  .main { padding: 24px 32px; overflow-x: auto; }
+  .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+  .header h2 { font-size: 24px; font-weight: 600; }
+
+  /* Forms */
+  label { display: block; font-size: 12px; color: #666; margin-bottom: 4px; font-weight: 500; }
+  input, select, textarea { width: 100%; padding: 8px 10px; border: 1px solid #d4d4d4; border-radius: 6px; font-size: 14px; background: white; font-family: inherit; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: #1a4d4a; box-shadow: 0 0 0 2px rgba(26,77,74,0.1); }
+  textarea { min-height: 60px; resize: vertical; }
+  .form-group { margin-bottom: 12px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* Buttons */
+  button.btn { background: #1a4d4a; color: white; border: none; padding: 8px 14px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; }
+  button.btn:hover { background: #154340; }
+  button.btn.secondary { background: white; color: #333; border: 1px solid #d4d4d4; }
+  button.btn.secondary:hover { background: #f9f9f8; }
+  button.btn.danger { background: #dc2626; }
+  button.btn.success { background: #059669; }
+  button.btn.small { padding: 4px 8px; font-size: 12px; }
+  .time-now-btn { background: #f0f0ee; color: #333; border: 1px solid #d4d4d4; padding: 0 12px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; white-space: nowrap; }
+  .time-now-btn:hover { background: #e8e8e6; }
+
+  /* Cards & stats */
+  .card { background: white; border-radius: 10px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .stat { background: white; padding: 18px; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+  .stat .label { font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat .value { font-size: 28px; font-weight: 600; color: #1a4d4a; margin-top: 6px; }
+  .stat .sub { font-size: 12px; color: #666; margin-top: 4px; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #f0f0ee; font-size: 13px; }
+  th { background: #f9f9f8; font-weight: 600; color: #555; font-size: 12px; text-transform: uppercase; letter-spacing: 0.3px; }
+  tr:hover td { background: #fafaf9; }
+
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 100px; font-size: 11px; font-weight: 600; }
+  .badge.invoiced { background: #d1fae5; color: #065f46; }
+  .badge.pending { background: #fef3c7; color: #92400e; }
+  .badge.admin { background: #dbeafe; color: #1e40af; }
+  .badge.tech { background: #f3e8ff; color: #6b21a8; }
+
+  /* Filter bar */
+  .filter-bar { background: white; padding: 16px; border-radius: 10px; margin-bottom: 16px; display: flex; gap: 12px; flex-wrap: wrap; align-items: end; }
+  .filter-bar .form-group { margin: 0; min-width: 140px; }
+
+  /* Login */
+  .login-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; background: linear-gradient(135deg, #1a4d4a 0%, #2d7a72 100%); }
+  .login-card { background: white; border-radius: 16px; padding: 32px; width: 100%; max-width: 400px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); }
+  .login-card .logo { text-align: center; margin-bottom: 24px; }
+  .login-card .logo h1 { color: #1a4d4a; font-size: 28px; letter-spacing: 1px; }
+  .login-card .logo p { color: #888; font-size: 13px; }
+  .login-card input { padding: 12px; font-size: 16px; }
+  .login-card button { padding: 12px; font-size: 15px; width: 100%; }
+
+  /* Modal */
+  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+  .modal { background: white; border-radius: 12px; padding: 24px; width: 100%; max-width: 700px; max-height: 90vh; overflow-y: auto; }
+  .modal h3 { font-size: 18px; margin-bottom: 16px; }
+  .modal-actions { display: flex; gap: 8px; margin-top: 20px; justify-content: flex-end; }
+
+  /* Alerts */
+  .alert { padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; }
+  .alert.error { background: #fee2e2; color: #991b1b; }
+  .alert.success { background: #d1fae5; color: #065f46; }
+
+  .empty { text-align: center; padding: 60px 20px; color: #888; }
+
+  /* Calendar */
+  .cal-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; gap: 12px; flex-wrap: wrap; }
+  .cal-nav { display: flex; align-items: center; gap: 8px; }
+  .cal-title { font-size: 18px; font-weight: 600; min-width: 200px; }
+  .cal-view-toggle { display: flex; background: #f0f0ee; border-radius: 6px; padding: 2px; }
+  .cal-view-toggle button { background: transparent; border: none; padding: 6px 14px; font-size: 13px; cursor: pointer; border-radius: 4px; color: #555; }
+  .cal-view-toggle button.active { background: #1a4d4a; color: white; }
+  .cal-legend { display: flex; gap: 14px; font-size: 12px; flex-wrap: wrap; align-items: center; }
+  .cal-legend .item { display: flex; align-items: center; gap: 4px; color: #555; }
+  .cal-legend .dot { width: 10px; height: 10px; border-radius: 2px; }
+
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #e5e5e5; border: 1px solid #e5e5e5; border-radius: 8px; overflow: hidden; }
+  .cal-header { background: #f9f9f8; padding: 8px; text-align: center; font-size: 11px; font-weight: 600; color: #666; text-transform: uppercase; letter-spacing: 0.3px; }
+  .cal-day { background: white; min-height: 110px; padding: 6px 8px; cursor: pointer; transition: background 0.1s; position: relative; }
+  .cal-day:hover { background: #fafaf9; }
+  .cal-day.today { background: #fff7e6; }
+  .cal-day.today:hover { background: #fff1d6; }
+  .cal-day.other-month { background: #fafaf9; }
+  .cal-day.other-month .cal-daynum { color: #ccc; }
+  .cal-day.weekend .cal-daynum { color: #c44; }
+  .cal-daynum { font-size: 13px; font-weight: 600; color: #333; margin-bottom: 4px; }
+  .cal-event { font-size: 11px; padding: 2px 6px; border-radius: 3px; margin-bottom: 2px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; border-left: 3px solid; }
+  .cal-event.job { background: #d1fae5; border-color: #059669; color: #065f46; }
+  .cal-event.job.pending { background: #fef3c7; border-color: #f59e0b; color: #92400e; }
+  .cal-event.survey { background: #dbeafe; border-color: #1e40af; color: #1e40af; }
+  .cal-event.followup { background: #f3e8ff; border-color: #6b21a8; color: #6b21a8; }
+  .cal-event:hover { filter: brightness(0.95); }
+  .cal-more { font-size: 10px; color: #888; padding: 2px 6px; cursor: pointer; }
+  .cal-more:hover { color: #1a4d4a; }
+
+  /* Week view */
+  .week-grid { display: grid; grid-template-columns: 80px repeat(7, 1fr); gap: 1px; background: #e5e5e5; border: 1px solid #e5e5e5; border-radius: 8px; overflow: hidden; }
+  .week-hour { background: white; padding: 4px 6px; font-size: 11px; color: #888; text-align: right; }
+  .week-cell { background: white; min-height: 40px; padding: 2px; position: relative; cursor: pointer; }
+  .week-cell:hover { background: #fafaf9; }
+  .week-day-header { background: #f9f9f8; padding: 8px; text-align: center; font-size: 12px; font-weight: 600; color: #444; }
+  .week-day-header .num { font-size: 18px; display: block; margin-top: 2px; color: #1a4d4a; }
+  .week-day-header.today .num { color: #f59e0b; }
+  .week-event { font-size: 11px; padding: 2px 4px; border-radius: 3px; margin-bottom: 1px; line-height: 1.3; border-left: 2px solid; }
+  .loading { text-align: center; padding: 40px; color: #888; }
+  .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; margin-top: 12px; }
+  .photo-grid img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px; cursor: pointer; }
+
+  .actions-cell { display: flex; gap: 4px; }
+
+  .photo-viewer { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: flex; align-items: center; justify-content: center; z-index: 2000; }
+  .photo-viewer img { max-width: 95%; max-height: 95vh; }
+  .photo-viewer .close { position: absolute; top: 20px; right: 20px; background: white; border: none; border-radius: 50%; width: 40px; height: 40px; font-size: 20px; cursor: pointer; }
+
+  .access-denied { background: #fee2e2; color: #991b1b; padding: 20px; border-radius: 10px; text-align: center; margin: 40px auto; max-width: 500px; }
+
+  @media (max-width: 768px) {
+    .layout { grid-template-columns: 1fr; }
+    .sidebar { position: static; height: auto; }
+    .sidebar .footer { position: static; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen" class="login-screen">
+  <div class="login-card">
+    <div class="logo">
+      <h1>JadeWell</h1>
+      <p>Admin felület</p>
+    </div>
+    <div id="login-error" class="alert error" style="display:none"></div>
+    <div class="form-group">
+      <label>Felhasználónév</label>
+      <input type="text" id="login-username">
+    </div>
+    <div class="form-group">
+      <label>Jelszó</label>
+      <input type="password" id="login-password">
+    </div>
+    <button class="btn" onclick="doLogin()">Bejelentkezés</button>
+  </div>
+</div>
+
+<!-- ACCESS DENIED -->
+<div id="access-denied" class="access-denied" style="display:none">
+  <h2 style="margin-bottom:8px">Hozzáférés megtagadva</h2>
+  <p>Csak admin felhasználók érhetik el ezt az oldalt.</p>
+  <button class="btn" style="margin-top:16px" onclick="logout()">Kijelentkezés</button>
+</div>
+
+<!-- MAIN APP -->
+<div id="app" class="layout" style="display:none">
+  <aside class="sidebar">
+    <div class="logo">
+      <h1>JadeWell</h1>
+      <p>Admin panel</p>
+    </div>
+    <nav>
+      <a class="active" data-view="dashboard" onclick="switchView('dashboard')">📊 Áttekintés</a>
+      <a data-view="calendar" onclick="switchView('calendar')">📅 Naptár</a>
+      <a data-view="leads" onclick="switchView('leads')">💬 Érdeklődések</a>
+      <a data-view="quotes" onclick="switchView('quotes')">📋 Árajánlatok</a>
+      <a data-view="jobs" onclick="switchView('jobs')">🛠️ Munkák</a>
+      <a data-view="partners" onclick="switchView('partners')">🤝 Partnerek</a>
+      <a data-view="users" onclick="switchView('users')">👥 Felhasználók</a>
+      <a data-view="reports" onclick="switchView('reports')">📄 Riportok</a>
+      <a href="/" style="border-top:1px solid rgba(255,255,255,0.1);margin-top:8px;padding-top:14px">📱 Szervizes felület →</a>
+    </nav>
+    <div class="footer">
+      <div id="user-display"></div>
+      <button onclick="logout()">Kijelentkezés</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <!-- DASHBOARD -->
+    <div id="view-dashboard" class="view">
+      <div class="header"><h2>Áttekintés</h2></div>
+      <div class="stats" id="stats-grid"></div>
+      <div class="card">
+        <h3 style="margin-bottom:12px">Legutóbbi munkák</h3>
+        <div id="recent-jobs"></div>
+      </div>
+    </div>
+
+    <!-- CALENDAR -->
+    <div id="view-calendar" class="view" style="display:none">
+      <div class="header">
+        <h2>Naptár</h2>
+        <button class="btn" onclick="openLeadModal()">+ Új érdeklődés</button>
+      </div>
+
+      <div class="card">
+        <div class="cal-toolbar">
+          <div class="cal-nav">
+            <button class="btn small secondary" onclick="calNav(-1)">‹</button>
+            <button class="btn small secondary" onclick="calToday()">Ma</button>
+            <button class="btn small secondary" onclick="calNav(1)">›</button>
+            <span class="cal-title" id="cal-title"></span>
+          </div>
+
+          <div class="cal-view-toggle">
+            <button id="cal-month-btn" class="active" onclick="setCalView('month')">Hónap</button>
+            <button id="cal-week-btn" onclick="setCalView('week')">Hét</button>
+          </div>
+
+          <div class="cal-legend">
+            <div class="item"><div class="dot" style="background:#059669"></div>Számlázott munka</div>
+            <div class="item"><div class="dot" style="background:#f59e0b"></div>Nem számlázott</div>
+            <div class="item"><div class="dot" style="background:#1e40af"></div>Felmérés</div>
+            <div class="item"><div class="dot" style="background:#6b21a8"></div>Visszahívás</div>
+          </div>
+        </div>
+
+        <div id="cal-content"></div>
+      </div>
+    </div>
+
+    <!-- QUOTES -->
+    <div id="view-quotes" class="view" style="display:none">
+      <div class="header">
+        <h2>Árajánlatok</h2>
+        <button class="btn" onclick="openQuoteEditor()">+ Új árajánlat</button>
+      </div>
+
+      <div class="filter-bar">
+        <div class="form-group">
+          <label>Státusz</label>
+          <select id="filter-quote-status" onchange="loadQuotes()">
+            <option value="">Mind</option>
+            <option value="draft">Piszkozat</option>
+            <option value="sent">Kiküldve</option>
+            <option value="accepted">Elfogadva</option>
+            <option value="rejected">Elutasítva</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card">
+        <div id="quotes-list"></div>
+      </div>
+    </div>
+
+    <!-- LEADS -->
+    <div id="view-leads" class="view" style="display:none">
+      <div class="header">
+        <h2>Érdeklődések</h2>
+        <button class="btn" onclick="openLeadModal()">+ Új érdeklődés</button>
+      </div>
+
+      <div class="filter-bar">
+        <div class="form-group">
+          <label>Státusz</label>
+          <select id="filter-lead-status" onchange="loadLeads()">
+            <option value="active">Aktívak</option>
+            <option value="">Mind</option>
+            <option value="new">Új</option>
+            <option value="survey_scheduled">Felmérés egyeztetve</option>
+            <option value="quoted">Árajánlat kiküldve</option>
+            <option value="on_hold">Várakozik</option>
+            <option value="won">Megnyert (partner)</option>
+            <option value="lost">Elutasítva</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Esedékesség</label>
+          <select id="filter-lead-due" onchange="loadLeads()">
+            <option value="">Mind</option>
+            <option value="overdue">Lejárt</option>
+            <option value="today">Ma esedékes</option>
+            <option value="week">Héten belül</option>
+          </select>
+        </div>
+        <div class="form-group" style="flex:1;min-width:200px">
+          <label>Keresés (név, telefon, cím)</label>
+          <input type="text" id="filter-lead-search" placeholder="Pl. Kovács" oninput="debouncedLoadLeads()">
+        </div>
+      </div>
+
+      <div class="card">
+        <div id="leads-list"></div>
+      </div>
+    </div>
+
+    <!-- JOBS -->
+    <div id="view-jobs" class="view" style="display:none">
+      <div class="header">
+        <h2>Munkák</h2>
+        <button class="btn" onclick="openJobModal()">+ Új munka</button>
+      </div>
+
+      <div class="filter-bar">
+        <div class="form-group">
+          <label>Partner</label>
+          <select id="filter-partner" onchange="loadJobs()">
+            <option value="">Mind</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Év</label>
+          <select id="filter-year" onchange="loadJobs()"></select>
+        </div>
+        <div class="form-group">
+          <label>Hónap</label>
+          <select id="filter-month" onchange="loadJobs()">
+            <option value="">Mind</option>
+            <option value="01">Január</option><option value="02">Február</option>
+            <option value="03">Március</option><option value="04">Április</option>
+            <option value="05">Május</option><option value="06">Június</option>
+            <option value="07">Július</option><option value="08">Augusztus</option>
+            <option value="09">Szeptember</option><option value="10">Október</option>
+            <option value="11">November</option><option value="12">December</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Számlázás</label>
+          <select id="filter-invoiced" onchange="loadJobs()">
+            <option value="">Mind</option>
+            <option value="0">Nincs számlázva</option>
+            <option value="1">Számlázva</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Szerelő (név alapján)</label>
+          <input type="text" id="filter-technician" placeholder="Pl. András" oninput="debouncedLoadJobs()">
+        </div>
+      </div>
+
+      <div class="card">
+        <div id="jobs-list"></div>
+      </div>
+    </div>
+
+    <!-- PARTNERS -->
+    <div id="view-partners" class="view" style="display:none">
+      <div class="header">
+        <h2>Partnerek</h2>
+        <button class="btn" onclick="openPartnerModal()">+ Új partner</button>
+      </div>
+      <div class="card">
+        <div id="partners-list"></div>
+      </div>
+    </div>
+
+    <!-- USERS -->
+    <div id="view-users" class="view" style="display:none">
+      <div class="header">
+        <h2>Felhasználók</h2>
+        <button class="btn" onclick="openUserModal()">+ Új felhasználó</button>
+      </div>
+      <div class="card">
+        <div id="users-list"></div>
+      </div>
+    </div>
+
+    <!-- REPORTS -->
+    <div id="view-reports" class="view" style="display:none">
+      <div class="header"><h2>PDF riportok</h2></div>
+      <div class="card">
+        <p style="margin-bottom:16px;color:#666">Készíts PDF riportot egy partner munkáiról. Szűrhetsz év, hónap és számlázási státusz alapján.</p>
+
+        <div class="form-row" style="margin-bottom:12px">
+          <div class="form-group">
+            <label>Partner *</label>
+            <select id="report-partner"></select>
+          </div>
+          <div class="form-group">
+            <label>Év</label>
+            <select id="report-year"></select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Hónap</label>
+            <select id="report-month">
+              <option value="">Mind</option>
+              <option value="01">Január</option><option value="02">Február</option>
+              <option value="03">Március</option><option value="04">Április</option>
+              <option value="05">Május</option><option value="06">Június</option>
+              <option value="07">Július</option><option value="08">Augusztus</option>
+              <option value="09">Szeptember</option><option value="10">Október</option>
+              <option value="11">November</option><option value="12">December</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Számlázás</label>
+            <select id="report-invoiced">
+              <option value="">Mind</option>
+              <option value="0">Csak nem számlázott</option>
+              <option value="1">Csak számlázott</option>
+            </select>
+          </div>
+        </div>
+
+        <button class="btn" style="margin-top:8px" onclick="generateReport()">📄 PDF riport letöltése</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- MODAL CONTAINERS -->
+<div id="modal-bg" class="modal-bg" style="display:none" onclick="if(event.target===this) closeModal()">
+  <div class="modal" id="modal-content"></div>
+</div>
+
+<!-- PHOTO VIEWER -->
+<div id="photo-viewer" class="photo-viewer" style="display:none" onclick="closePhotoViewer()">
+  <button class="close">×</button>
+  <img id="photo-viewer-img">
+</div>
+
+<script>
+const API = '';
+let token = localStorage.getItem('jw_token');
+let currentUser = null;
+let partners = [];
+let users = [];
+let leads = [];
+let debouncedLoadJobs;
+let debouncedLoadLeads;
+let calCurrentDate = new Date();
+let calCurrentView = 'month';
+let calEvents = [];
+
+// === AUTH ===
+async function doLogin() {
+  const username = document.getElementById('login-username').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+
+  try {
+    const res = await fetch(API + '/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      errEl.textContent = data.error || 'Hiba';
+      errEl.style.display = 'block';
+      return;
+    }
+    if (data.user.role !== 'admin') {
+      errEl.textContent = 'Csak admin férhet hozzá ehhez a felülethez';
+      errEl.style.display = 'block';
+      return;
+    }
+    token = data.token;
+    currentUser = data.user;
+    localStorage.setItem('jw_token', token);
+    localStorage.setItem('jw_user', JSON.stringify(currentUser));
+    showApp();
+  } catch (e) {
+    errEl.textContent = 'Hálózati hiba: ' + e.message;
+    errEl.style.display = 'block';
+  }
+}
+
+function logout() {
+  localStorage.removeItem('jw_token');
+  localStorage.removeItem('jw_user');
+  token = null;
+  currentUser = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('access-denied').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+}
+
+async function checkAuth() {
+  if (!token) return null;
+  try {
+    const res = await fetch(API + '/api/auth/me', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (!res.ok) return null;
+    return JSON.parse(localStorage.getItem('jw_user'));
+  } catch (e) { return null; }
+}
+
+async function showApp() {
+  if (currentUser.role !== 'admin') {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('access-denied').style.display = 'block';
+    return;
+  }
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'grid';
+  document.getElementById('user-display').textContent = currentUser.name;
+
+  // Évek feltöltése
+  const now = new Date().getFullYear();
+  const years = [now, now-1, now-2, now-3, now-4];
+  const yearOpts = '<option value="">Mind</option>' + years.map(y => `<option value="${y}">${y}</option>`).join('');
+  document.getElementById('filter-year').innerHTML = yearOpts;
+  document.getElementById('report-year').innerHTML = '<option value="">Mind</option>' + years.map(y => `<option value="${y}">${y}</option>`).join('');
+
+  await loadPartners();
+  await loadDashboard();
+  debouncedLoadJobs = debounce(loadJobs, 400);
+  debouncedLoadLeads = debounce(loadLeads, 400);
+}
+
+// === API HELPER ===
+async function api(path, options = {}) {
+  const res = await fetch(API + path, {
+    ...options,
+    headers: {
+      'Authorization': 'Bearer ' + token,
+      ...(options.body && !(options.body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}),
+      ...(options.headers || {})
+    }
+  });
+  if (res.status === 401) { logout(); throw new Error('Lejárt a bejelentkezés'); }
+  const data = res.headers.get('content-type')?.includes('json') ? await res.json() : null;
+  if (!res.ok) throw new Error((data && data.error) || 'API hiba');
+  return data;
+}
+
+// === VIEW SWITCH ===
+function switchView(view) {
+  document.querySelectorAll('.sidebar nav a').forEach(a => a.classList.toggle('active', a.dataset.view === view));
+  document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
+  document.getElementById('view-' + view).style.display = 'block';
+
+  if (view === 'dashboard') loadDashboard();
+  if (view === 'calendar') loadCalendar();
+  if (view === 'leads') loadLeads();
+  if (view === 'quotes') loadQuotes();
+  if (view === 'jobs') loadJobs();
+  if (view === 'partners') loadPartnersView();
+  if (view === 'users') loadUsers();
+  if (view === 'reports') populateReportPartners();
+}
+
+// === DASHBOARD ===
+async function loadDashboard() {
+  try {
+    const stats = await api('/api/admin/stats');
+    document.getElementById('stats-grid').innerHTML = `
+      <div class="stat" style="cursor:pointer" onclick="switchView('leads')">
+        <div class="label">Aktív érdeklődések</div>
+        <div class="value" style="color:#854F0B">${stats.active_leads || 0}</div>
+        ${stats.pipeline_value > 0 ? `<div class="sub">Pipeline: ${Number(stats.pipeline_value).toLocaleString('hu-HU')} Ft</div>` : '<div class="sub">becsült érték</div>'}
+      </div>
+      <div class="stat" style="cursor:pointer" onclick="loadOverdueLeads()">
+        <div class="label">Lejárt esedékesség</div>
+        <div class="value" style="color:${stats.overdue_leads > 0 ? '#dc2626' : '#888'}">${stats.overdue_leads || 0}</div>
+        <div class="sub">${stats.overdue_leads > 0 ? 'sürgős!' : 'minden rendben'}</div>
+      </div>
+      <div class="stat">
+        <div class="label">Összes munka</div>
+        <div class="value">${stats.total_jobs}</div>
+      </div>
+      <div class="stat">
+        <div class="label">Partnerek</div>
+        <div class="value">${stats.total_partners}</div>
+      </div>
+      <div class="stat">
+        <div class="label">Ebben a hónapban</div>
+        <div class="value">${stats.this_month}</div>
+        <div class="sub">munka</div>
+      </div>
+      <div class="stat">
+        <div class="label">Nem számlázott</div>
+        <div class="value" style="color:#dc2626">${stats.not_invoiced}</div>
+        ${stats.not_invoiced_amount > 0 ? `<div class="sub">${Number(stats.not_invoiced_amount).toLocaleString('hu-HU')} Ft</div>` : ''}
+      </div>
+    `;
+
+    // Esedékes érdeklődések kártya
+    let upcomingHtml = '';
+    try {
+      const upcomingLeads = await api('/api/leads?due=week&status=active');
+      if (upcomingLeads.length > 0) {
+        upcomingHtml = `
+          <div class="card" style="margin-bottom:16px">
+            <h3 style="margin-bottom:12px">📅 Esedékes érdeklődések (héten belül)</h3>
+            <table>
+              <thead><tr><th>Mikor</th><th>Mit</th><th>Érdeklődő</th><th>Telefon</th><th>Státusz</th></tr></thead>
+              <tbody>
+                ${upcomingLeads.map(l => {
+                  const today = new Date().toISOString().split('T')[0];
+                  const surveyOverdue = l.survey_date && l.survey_date < today;
+                  const followOverdue = l.follow_up_date && l.follow_up_date < today;
+                  const dates = [];
+                  if (l.survey_date) dates.push(`<span style="${surveyOverdue ? 'color:#dc2626;font-weight:600' : ''}">${formatDate(l.survey_date)}: felmérés</span>`);
+                  if (l.follow_up_date) dates.push(`<span style="${followOverdue ? 'color:#dc2626;font-weight:600' : ''}">${formatDate(l.follow_up_date)}: visszahívás</span>`);
+                  return `
+                    <tr style="cursor:pointer" onclick="switchView('leads'); setTimeout(() => openLeadModal(${l.id}), 200)">
+                      <td>${dates.join('<br>')}</td>
+                      <td>${escapeHtml(l.project_type || '-')}</td>
+                      <td><strong>${escapeHtml(l.name)}</strong></td>
+                      <td>${escapeHtml(l.phone || '-')}</td>
+                      <td>${leadStatusBadge(l.status)}</td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+    } catch (e) { /* lead endpoint hiba esetén csendben kihagyjuk */ }
+
+    const jobs = await api('/api/jobs?');
+    const recent = jobs.slice(0, 8);
+    let recentHtml = '';
+    if (recent.length === 0) {
+      recentHtml = '<div class="empty">Még nincs rögzített munka.</div>';
+    } else {
+      recentHtml = `
+        <table>
+          <thead><tr><th>Dátum</th><th>Partner</th><th>Szerelők</th><th>Státusz</th></tr></thead>
+          <tbody>
+            ${recent.map(j => `
+              <tr style="cursor:pointer" onclick="openJobModal(${j.id})">
+                <td>${formatDate(j.job_date)}</td>
+                <td><strong>${escapeHtml(j.partner_name)}</strong></td>
+                <td>${escapeHtml(j.technicians || '-')}</td>
+                <td><span class="badge ${j.invoiced ? 'invoiced' : 'pending'}">${j.invoiced ? '✓ Számlázva' : 'Nincs számlázva'}</span></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    document.querySelector('#view-dashboard .card').outerHTML =
+      upcomingHtml + `<div class="card"><h3 style="margin-bottom:12px">Legutóbbi munkák</h3>${recentHtml}</div>`;
+  } catch (e) {
+    document.getElementById('stats-grid').innerHTML = `<div class="alert error">Hiba: ${e.message}</div>`;
+  }
+}
+
+function loadOverdueLeads() {
+  switchView('leads');
+  setTimeout(() => {
+    document.getElementById('filter-lead-due').value = 'overdue';
+    document.getElementById('filter-lead-status').value = '';
+    loadLeads();
+  }, 100);
+}
+
+// === PARTNERS ===
+async function loadPartners() {
+  partners = await api('/api/partners');
+  const filterSel = document.getElementById('filter-partner');
+  if (filterSel) {
+    filterSel.innerHTML = '<option value="">Mind</option>' +
+      partners.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+  }
+}
+
+async function loadPartnersView() {
+  await loadPartners();
+  const list = document.getElementById('partners-list');
+  if (partners.length === 0) {
+    list.innerHTML = '<div class="empty">Még nincs partner. Adj hozzá egyet!</div>';
+    return;
+  }
+  list.innerHTML = `
+    <table>
+      <thead><tr><th>Név</th><th>Telefon</th><th>Cím</th><th>Email</th><th></th></tr></thead>
+      <tbody>
+        ${partners.map(p => `
+          <tr>
+            <td><strong>${escapeHtml(p.name)}</strong></td>
+            <td>${escapeHtml(p.phone || '-')}</td>
+            <td>${escapeHtml(p.address || '-')}</td>
+            <td>${escapeHtml(p.email || '-')}</td>
+            <td class="actions-cell">
+              <button class="btn small secondary" onclick="openPartnerModal(${p.id})">Szerk.</button>
+              <button class="btn small danger" onclick="deletePartner(${p.id})">Törlés</button>
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+function openPartnerModal(id) {
+  const partner = id ? partners.find(p => p.id === id) : {};
+  showModal(`
+    <h3>${id ? 'Partner módosítása' : 'Új partner'}</h3>
+    <div class="form-group"><label>Név *</label><input type="text" id="p-name" value="${escapeHtml(partner.name || '')}"></div>
+    <div class="form-group"><label>Cím</label><input type="text" id="p-address" value="${escapeHtml(partner.address || '')}"></div>
+    <div class="form-row">
+      <div class="form-group"><label>Telefon</label><input type="text" id="p-phone" value="${escapeHtml(partner.phone || '')}"></div>
+      <div class="form-group"><label>Email</label><input type="email" id="p-email" value="${escapeHtml(partner.email || '')}"></div>
+    </div>
+    <div class="form-group"><label>Megjegyzés</label><textarea id="p-notes">${escapeHtml(partner.notes || '')}</textarea></div>
+    <div class="modal-actions">
+      <button class="btn secondary" onclick="closeModal()">Mégse</button>
+      <button class="btn" onclick="savePartner(${id || 'null'})">Mentés</button>
+    </div>
+  `);
+}
+
+async function savePartner(id) {
+  const data = {
+    name: document.getElementById('p-name').value.trim(),
+    address: document.getElementById('p-address').value.trim(),
+    phone: document.getElementById('p-phone').value.trim(),
+    email: document.getElementById('p-email').value.trim(),
+    notes: document.getElementById('p-notes').value.trim()
+  };
+  if (!data.name) { alert('A név kötelező'); return; }
+
+  try {
+    if (id) {
+      await api(`/api/partners/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+    } else {
+      await api('/api/partners', { method: 'POST', body: JSON.stringify(data) });
+    }
+    closeModal();
+    await loadPartners();
+    loadPartnersView();
+  } catch (e) { alert('Hiba: ' + e.message); }
+}
+
+async function deletePartner(id) {
+  if (!confirm('Biztosan törlöd a partnert?')) return;
+  try {
+    await api(`/api/partners/${id}`, { method: 'DELETE' });
+    await loadPartners();
+    loadPartnersView();
+  } catch (e) { alert('Hiba: ' + e.message); }
+}
+
+// === JOBS ===
+async function loadJobs() {
+  const params = new URLSearchParams();
+  const partner = document.getElementById('filter-partner').value;
+  const year = document.getElementById('filter-year').value;
+  const month = document.getElementById('filter-month').value;
+  const invoiced = document.getElementById('filter-invoiced').value;
+  const technician = document.getElementById('filter-technician').value.trim();
+  if (partner) params.set('partner_id', partner);
+  if (year) params.set('year', year);
+  if (month) params.set('month', month);
+  if (invoiced !== '') params.set('invoiced', invoiced);
+  if (technician) params.set('technician', technician);
+
+  const list = document.getElementById('jobs-list');
+  list.innerHTML = '<div class="loading">Betöltés...</div>';
+
+  try {
+    const jobs = await api('/api/jobs?' + params.toString());
+    if (jobs.length === 0) {
+      list.innerHTML = '<div class="empty">Nincs munka a megadott szűrőkkel.</div>';
+      return;
+    }
+    list.innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>Dátum</th><th>Partner</th><th>Idő</th><th>Szerelők</th>
+            <th>Munkavégzés</th><th>Képek</th><th>Számla</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${jobs.map(j => `
+            <tr style="cursor:pointer" onclick="openJobModal(${j.id})">
+              <td>${formatDate(j.job_date)}</td>
+              <td><strong>${escapeHtml(j.partner_name)}</strong></td>
+              <td>${j.arrived_at || j.left_at ? `${j.arrived_at || '—'} – ${j.left_at || '—'}` : '<span style="color:#aaa">nincs megadva</span>'}</td>
+              <td>${escapeHtml(j.technicians || '-')}</td>
+              <td>${escapeHtml((j.description || '').substring(0, 40))}${(j.description || '').length > 40 ? '...' : ''}</td>
+              <td>${j.photo_count || 0} 📷</td>
+              <td><span class="badge ${j.invoiced ? 'invoiced' : 'pending'}">${j.invoiced ? '✓' : '○'}</span></td>
+              <td onclick="event.stopPropagation()">
+                <button class="btn small secondary" onclick="openJobModal(${j.id})">Megnéz</button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  } catch (e) {
+    list.innerHTML = `<div class="alert error">Hiba: ${e.message}</div>`;
+  }
+}
+
+async function openJobModal(id) {
+  let job = {};
+  let photos = [];
+  if (id) {
+    try {
+      job = await api(`/api/jobs/${id}`);
+      photos = job.photos || [];
+    } catch (e) { alert('Hiba: ' + e.message); return; }
+  }
+
+  await loadPartners();
+
+  const partnerOpts = partners.map(p => `<option value="${p.id}" ${job.partner_id === p.id ? 'selected' : ''}>${escapeHtml(p.name)}</option>`).join('');
+
+  showModal(`
+    <h3>${id ? 'Munka adatai' : 'Új munka'}</h3>
+    <div class="form-group">
+      <label>Partner *</label>
+      <select id="j-partner">${partnerOpts}</select>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Dátum *</label><input type="date" id="j-date" value="${job.job_date || new Date().toISOString().split('T')[0]}"></div>
+      <div class="form-group"><label>Szerelők</label><input type="text" id="j-tech" value="${escapeHtml(job.technicians || '')}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Érkezés</label>
+        <div style="display:flex;gap:6px">
+          <input type="time" id="j-arrived" value="${job.arrived_at || ''}" style="flex:1">
+          <button type="button" class="time-now-btn" onclick="document.getElementById('j-arrived').value = getCurrentTime()">Most</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Távozás</label>
+        <div style="display:flex;gap:6px">
+          <input type="time" id="j-left" value="${job.left_at || ''}" style="flex:1">
+          <button type="button" class="time-now-btn" onclick="document.getElementById('j-left').value = getCurrentTime()">Most</button>
+        </div>
+      </div>
+    </div>
+    <div class="form-group"><label>Elvégzett munka</label><textarea id="j-desc">${escapeHtml(job.description || '')}</textarea></div>
+    <div class="form-group"><label>Beépített anyagok</label><textarea id="j-mat">${escapeHtml(job.materials_installed || '')}</textarea></div>
+
+    <hr style="margin:20px 0;border:none;border-top:1px solid #eee">
+    <h4 style="margin-bottom:12px">Számlázási adatok</h4>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Státusz</label>
+        <select id="j-invoiced">
+          <option value="0" ${!job.invoiced ? 'selected' : ''}>Nincs számlázva</option>
+          <option value="1" ${job.invoiced ? 'selected' : ''}>Számlázva</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Számla száma</label><input type="text" id="j-invnum" value="${escapeHtml(job.invoice_number || '')}"></div>
+    </div>
+    <div class="form-group"><label>Összeg (Ft)</label><input type="number" id="j-invamt" value="${job.invoice_amount || ''}"></div>
+
+    ${photos.length > 0 ? `
+      <hr style="margin:20px 0;border:none;border-top:1px solid #eee">
+      <h4 style="margin-bottom:12px">Képek (${photos.length})</h4>
+      <div class="photo-grid">
+        ${photos.map(p => `
+          <div style="position:relative">
+            <img src="/uploads/${p.filename}" onclick="openPhoto('/uploads/${p.filename}')">
+            <button class="btn small danger" style="position:absolute;top:4px;right:4px;padding:2px 6px;font-size:11px" onclick="deletePhoto(${id}, ${p.id})">×</button>
+          </div>
+        `).join('')}
+      </div>
+    ` : ''}
+
+    <div class="modal-actions">
+      ${id ? `<button class="btn danger" onclick="deleteJob(${id})">Törlés</button>` : ''}
+      <button class="btn secondary" onclick="closeModal()">Mégse</button>
+      <button class="btn" onclick="saveJob(${id || 'null'})">Mentés</button>
+    </div>
+  `);
+}
+
+async function saveJob(id) {
+  const data = {
+    partner_id: document.getElementById('j-partner').value,
+    job_date: document.getElementById('j-date').value,
+    arrived_at: document.getElementById('j-arrived').value || null,
+    left_at: document.getElementById('j-left').value || null,
+    technicians: document.getElementById('j-tech').value || null,
+    description: document.getElementById('j-desc').value || null,
+    materials_installed: document.getElementById('j-mat').value || null,
+    invoiced: document.getElementById('j-invoiced').value === '1',
+    invoice_number: document.getElementById('j-invnum').value || null,
+    invoice_amount: parseFloat(document.getElementById('j-invamt').value) || null
+  };
+  if (!data.partner_id || !data.job_date) { alert('Partner és dátum kötelező'); return; }
+
+  try {
+    if (id) {
+      await api(`/api/jobs/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+    } else {
+      await api('/api/jobs', { method: 'POST', body: JSON.stringify(data) });
+    }
+    closeModal();
+    loadJobs();
+    loadDashboard();
+  } catch (e) { alert('Hiba: ' + e.message); }
+}
+
+async function deleteJob(id) {
+  if (!confirm('Biztosan törlöd a munkát az összes képpel együtt?')) return;
+  try {
+    await api(`/api/jobs/${id}`, { method: 'DELETE' });
+    closeModal();
+    loadJobs();
+    loadDashboard();
+  } catch (e) { alert('Hiba: ' + e.message); }
+}
+
+async function deletePhoto(jobId, photoId) {
+  if (!confirm('Biztosan törlöd a képet?')) return;
+  try {
+    await api(`/api/jobs/${jobId}/photos/${photoId}`, { method: 'DELETE' });
+    openJobModal(jobId);
+  } catch (e) { alert('Hiba: ' + e.message); }
+}
+
+// === CALENDAR ===
+const HU_MONTHS = ['Január', 'Február', 'Március', 'Április', 'Május', 'Június',
+                    'Július', 'Augusztus', 'Szeptember', 'Október', 'November', 'December'];
+const HU_WEEKDAYS_SHORT = ['Hétfő', 'Kedd', 'Szerda', 'Csütörtök', 'Péntek', 'Szombat', 'Vasárnap'];
+
+function setCalView(view) {
+  calCurrentView = view;
+  document.getElementById('cal-month-btn').classList.toggle('active', view === 'month');
+  document.getElementById('cal-week-btn').classList.toggle('active', view === 'week');
+  loadCalendar();
+}
+
+function calNav(dir) {
+  if (calCurrentView === 'month') {
+    calCurrentDate.setMonth(calCurrentDate.getMonth() + dir);
+  } else {
+    calCurrentDate.setDate(calCurrentDate.getDate() + (7 * dir));
+  }
+  loadCalendar();
+}
+
+function calToday() {
+  calCurrentDate = new Date();
+  loadCalendar();
+}
+
+async function loadCalendar() {
+  const y = calCurrentDate.getFullYear();
+  const m = calCurrentDate.getMonth() + 1;
+
+  // Cím beállítás
+  if (calCurrentView === 'month') {
+    document.getElementById('cal-title').textContent = `${y}. ${HU_MONTHS[m - 1]}`;
+  } else {
+    const monday = getMonday(calCurrentDate);
+    const sunday = new Date(monday); sunday.setDate(sunday.getDate() + 6);
+    document.getElementById('cal-title').textContent =
+      `${monday.getFullYear()}. ${HU_MONTHS[monday.getMonth()]} ${monday.getDate()}. - ${sunday.getDate()}.`;
+  }
+
+  // Eseményeket aktuális hónapra (és az átlapoló hetekre)
+  try {
+    // Ha hónap nézet vagyunk és a hét nézet átnyúlik, mindkét hónap kell
+    let events = await api(`/api/admin/calendar?year=${y}&month=${m}`);
+
+    if (calCurrentView === 'week') {
+      const monday = getMonday(calCurrentDate);
+      const sunday = new Date(monday); sunday.setDate(sunday.getDate() + 6);
+      // Ha a hét két hónapot érint, a másik hónapot is be kell tölteni
+      if (monday.getMonth() !== sunday.getMonth() || monday.getFullYear() !== sunday.getFullYear()) {
+        const otherEvents = await api(`/api/admin/calendar?year=${sunday.getFullYear()}&month=${sunday.getMonth() + 1}`);
+        events = events.concat(otherEvents);
+      }
+    } else {
+      // Hónap nézethez az előző és következő hónap néhány napját is mutatjuk
+      const prev = new Date(y, m - 2, 1);
+      const next = new Date(y, m, 1);
+      try {
+        const prevEvents = await api(`/api/admin/calendar?year=${prev.getFullYear()}&month=${prev.getMonth() + 1}`);
+        const nextEvents = await api(`/api/admin/calendar?year=${next.getFullYear()}&month=${next.getMonth() + 1}`);
+        events = events.concat(prevEvents).concat(nextEvents);
+      } catch(e) { /* ok */ }
+    }
+
+    calEvents = events;
+    renderCalendar();
+  } catch (e) {
+    document.getElementById('cal-content').innerHTML = `<div class="alert error">Hiba: ${e.message}</div>`;
+  }
+}
+
+function getMonday(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Hétfő
+  d.setDate(diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function renderCalendar() {
+  if (calCurrentView === 'month') {
+    renderMonthView();
+  } else {
+    renderWeekView();
+  }
+}
+
+function renderMonthView() {
+  const y = calCurrentDate.getFullYear();
+  const m = calCurrentDate.getMonth();
+  const firstDay = new Date(y, m, 1);
+  const lastDay = new Date(y, m + 1, 0);
+
+  // Az első hónap napja és melyik napra esik (hétfő = 0)
+  let startDay = firstDay.getDay();
+  startDay = startDay === 0 ? 6 : startDay - 1; // vasárnap = 6, hétfő = 0
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Események csoportosítása dátum szerint
+  const eventsByDate = {};
+  calEvents.forEach(e => {
+    if (!eventsByDate[e.date]) eventsByDate[e.date] = [];
+    eventsByDate[e.date].push(e);
+  });
+
+  let html = '<div class="cal-grid">';
+  HU_WEEKDAYS_SHORT.forEach(d => {
+    html += `<div class="cal-header">${d}</div>`;
+  });
+
+  // Előző hónap napjai (hogy hétfőnél kezdődjön)
+  const prevLastDay = new Date(y, m, 0).getDate();
+  for (let i = startDay - 1; i >= 0; i--) {
+    const day = prevLastDay - i;
+    const date = new Date(y, m - 1, day);
+    html += renderDayCell(date, eventsByDate, today, true);
+  }
+
+  // Aktuális hónap napjai
+  for (let day = 1; day <= lastDay.getDate(); day++) {
+    const date = new Date(y, m, day);
+    html += renderDayCell(date, eventsByDate, today, false);
+  }
+
+  // Következő hónap napjai (hogy 6 sor legyen)
+  const totalCells = startDay + lastDay.getDate();
+  const remaining = (7 - (totalCells % 7)) % 7;
+  for (let day = 1; day <= remaining; day++) {
+    const date = new Date(y, m + 1, day);
+    html += renderDayCell(date, eventsByDate, today, true);
+  }
+
+  html += '</div>';
+  document.getElementById('cal-content').innerHTML = html;
+}
+
+function renderDayCell(date, eventsByDate, today, otherMonth) {
+  const dateStr = date.toISOString().split('T')[0];
+  const isToday = date.getTime() === today.getTime();
+  const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+  const events = eventsByDate[dateStr] || [];
+
+  const classes = ['cal-day'];
+  if (isToday) classes.push('today');
+  if (otherMonth) classes.push('other-month');
+  if (isWeekend) classes.push('weekend');
+
+  let eventsHtml = '';
+  const maxVisible = 3;
+  events.slice(0, maxVisible).forEach(e => {
+    eventsHtml += renderEventBadge(e);
+  });
+  if (events.length > maxVisible) {
+    eventsHtml += `<div class="cal-more" onclick="event.stopPropagation();showDayEvents('${dateStr}')">+${events.length - maxVisible} még</div>`;
+  }
+
+  return `
+    <div class="${classes.join(' ')}" onclick="showDayEvents('${dateStr}')">
+      <div class="cal-daynum">${date.getDate()}</div>
+      ${eventsHtml}
+    </div>
+  `;
+}
+
+function renderEventBadge(e) {
+  const cls = e.type === 'job' ? (e.invoiced ? 'job' : 'job pending') : e.type;
+  const time = e.time ? `${e.time} ` : '';
+  return `<div class="cal-event ${cls}" onclick="event.stopPropagation();openEventFromCalendar('${e.type}', ${e.id})" title="${escapeHtml(e.title)} - ${escapeHtml(e.subtitle || '')}">${time}${escapeHtml(e.title)}</div>`;
+}
+
+function renderWeekView() {
+  const monday = getMonday(calCurrentDate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Események dátum szerint csoportosítva
+  const eventsByDate = {};
+  calEvents.forEach(e => {
+    if (!eventsByDate[e.date]) eventsByDate[e.date] = [];
+    eventsByDate[e.date].push(e);
+  });
+
+  let html = '<div class="week-grid">';
+  // Üres bal felső
+  html += '<div class="week-hour"></div>';
+
+  // Napok header
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday); d.setDate(d.getDate() + i);
+    const isToday = d.getTime() === today.getTime();
+    html += `<div class="week-day-header ${isToday ? 'today' : ''}">
+      ${HU_WEEKDAYS_SHORT[i]}
+      <span class="num">${d.getDate()}</span>
+    </div>`;
+  }
+
+  // Egész napos események sor (idő nélküli események)
+  html += '<div class="week-hour" style="font-weight:600;color:#444">Egész nap</div>';
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday); d.setDate(d.getDate() + i);
+    const dateStr = d.toISOString().split('T')[0];
+    const events = (eventsByDate[dateStr] || []).filter(e => !e.time);
+    let cellHtml = '';
+    events.forEach(e => {
+      const cls = e.type === 'job' ? (e.invoiced ? 'job' : 'job pending') : e.type;
+      cellHtml += `<div class="week-event cal-event ${cls}" onclick="openEventFromCalendar('${e.type}', ${e.id})" title="${escapeHtml(e.subtitle || '')}">${escapeHtml(e.title)}</div>`;
+    });
+    html += `<div class="week-cell" onclick="showDayEvents('${dateStr}')">${cellHtml}</div>`;
+  }
+
+  // Órás bontás 6:00-tól 20:00-ig
+  for (let h = 6; h <= 20; h++) {
+    const hStr = String(h).padStart(2, '0') + ':00';
+    html += `<div class="week-hour">${hStr}</div>`;
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(monday); d.setDate(d.getDate() + i);
+      const dateStr = d.toISOString().split('T')[0];
+      const events = (eventsByDate[dateStr] || []).filter(e => {
+        if (!e.time) return false;
+        const eHour = parseInt(e.time.split(':')[0]);
+        return eHour === h;
+      });
+      let cellHtml = '';
+      events.forEach(e => {
+        const cls = e.type === 'job' ? (e.invoiced ? 'job' : 'job pending') : e.type;
+        cellHtml += `<div class="week-event cal-event ${cls}" onclick="openEventFromCalendar('${e.type}', ${e.id})">${e.time} ${escapeHtml(e.title)}</div>`;
+      });
+      html += `<div class="week-cell" onclick="showDayEvents('${dateStr}')">${cellHtml}</div>`;
+    }
+  }
+
+  html += '</div>';
+  document.getElementById('cal-content').innerHTML = html;
+}
+
+function showDayEvents(dateStr) {
+  const events = calEvents.filter(e => e.date === dateStr);
+  const date = new Date(dateStr);
+  const dateLabel = `${date.getFullYear()}. ${HU_MONTHS[date.getMonth()]} ${date.getDate()}. (${HU_WEEKDAYS_SHORT[(date.getDay() + 6) % 7]})`;
+
+  if (events.length === 0) {
+    showModal(`
+      <h3>${dateLabel}</h3>
+      <div class="empty" style="padding:30px">Nincs esemény ezen a napon.</div>
+      <div class="modal-actions">
+        <button class="btn secondary" onclick="closeModal()">Bezár</button>
+      </div>
+    `);
+    return;
+  }
+
+  const eventsHtml = events.map(e => {
+    let icon, label, color;
+    if (e.type === 'job') {
+      icon = '🛠️'; label = 'Szerviz'; color = e.invoiced ? '#059669' : '#f59e0b';
+    } else if (e.type === 'survey') {
+      icon = '📐'; label = 'Felmérés'; color = '#1e40af';
+    } else {
+      icon = '📞'; label = 'Visszahívás'; color = '#6b21a8';
+    }
+
+    return `
+      <div class="card" style="padding:14px;margin-bottom:8px;cursor:pointer;border-left:4px solid ${color}"
+           onclick="closeModal();openEventFromCalendar('${e.type}', ${e.id})">
+        <div style="display:flex;justify-content:space-between;align-items:start">
+          <div>
+            <div style="font-size:11px;color:${color};font-weight:600;text-transform:uppercase;letter-spacing:0.5px">${icon} ${label}${e.time ? ' · ' + e.time : ''}</div>
+            <div style="font-size:15px;font-weight:600;margin-top:4px">${escapeHtml(e.title)}</div>
+            <div style="font-size:13px;color:#666;margin-top:2px">${escapeHtml(e.subtitle || '')}</div>
+            ${e.meta ? `<div style="font-size:12px;color:#888;margin-top:4px">${escapeHtml(e.meta)}</div>` : ''}
+          </div>
+          <span style="font-size:18px">›</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  showModal(`
+    <h3>${dateLabel}</h3>
+    <div style="margin-top:12px">${eventsHtml}</div>
+    <div class="modal-actions">
+      <button class="btn secondary" onclick="closeModal()">Bezár</button>
+    </div>
+  `);
+}
+
+function openEventFromCalendar(type, id) {
+  closeModal();
+  setTimeout(() => {
+    if (type === 'job') {
+      openJobModal(id);
+    } else {
+      // survey és followup is leadre vezet
+      openLeadModal(id);
+    }
+  }, 100);
+}
+
+// === QUOTES ===
+const QUOTE_STATUS_LABELS = {
+  draft: { label: 'Piszkozat', bg: '#f5f5f4', color: '#525252' },
+  sent: { label: 'Kiküldve', bg: '#dbeafe', color: '#1e40af' },
+  accepted: { label: 'Elfogadva', bg: '#d1fae5', color: '#065f46' },
+  rejected: { label: 'Elutasítva', bg: '#fee2e2', color: '#991b1b' }
+};
+
+function quoteStatusBadge(status) {
+  const s = QUOTE_STATUS_LABELS[status] || QUOTE_STATUS_LABELS.draft;
+  return `<span class="badge" style="background:${s.bg};color:${s.color}">${s.label}</span>`;
+}
+
+async function loadQuotes() {
+  const status = document.getElementById('filter-quote-status').value;
+  const params = status ? `?status=${status}` : '';
+  const list = document.getElementById('quotes-list');
+  list.innerHTML = '<div class="loading">Betöltés...</div>';
+
+  try {
+    const quotes = await api('/api/quotes' + params);
+    if (quotes.length === 0) {
+      list.innerHTML = '<div class="empty">Nincs árajánlat. Hozz létre egyet a "+&nbsp;Új árajánlat" gombbal, vagy egy érdeklődésnél az "Árajánlat készítése" gombbal.</div>';
+      return;
+    }
+    list.innerHTML = `
+      <table>
+        <thead><tr><th>Szám</th><th>Ügyfél</th><th>Dátum</th><th>Érvényes</th><th>Összeg</th><th>Státusz</th><th></th></tr></thead>
+        <tbody>
+          ${quotes.map(q => `
+            <tr style="cursor:pointer" onclick="openQuoteEditor(${q.id})">
+              <td><strong>${escapeHtml(q.quote_number)}</strong></td>
+              <td>${escapeHtml(q.customer_name)}</td>
+              <td>${formatDate(q.issue_date)}</td>
+              <td>${formatDate(q.valid_until)}</td>
+              <td><strong>${Number(q.total || 0).toLocaleString('hu-HU')} Ft</strong></td>
+              <td>${quoteStatusBadge(q.status)}</td>
+              <td onclick="event.stopPropagation()" class="actions-cell">
+                <button class="btn small" onclick="downloadQuotePdf(${q.id})">PDF</button>
+                <button class="btn small" style="background:#0ea5e9;color:white" onclick="openSendEmailModal(${q.id})">Email</button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  } catch (e) {
+    list.innerHTML = `<div class="alert error">Hiba: ${e.message}</div>`;
+  }
+}
+
+async function openQuoteEditor(idOrNull, fromLeadId) {
+  let quote = {};
+  let items = [];
+  let lead = null;
+
+  if (idOrNull) {
+    try {
+      quote = await api(`/api/quotes/${idOrNull}`);
+      items = quote.items || [];
+    } catch (e) { alert('Hiba: ' + e.message); return; }
+  }
+
+  // Ha lead-ből jövünk, töltsük ki az ügyfél adatait
+  if (fromLeadId && !idOrNull) {
+    try {
+      lead = await api(`/api/leads/${fromLeadId}`);
+      quote.customer_name = lead.name;
+      quote.customer_address = lead.address;
+      quote.customer_phone = lead.phone;
+      quote.customer_email = lead.email;
+      quote.lead_id = lead.id;
+      quote.intro_text = lead.project_type
+        ? `Köszönjük érdeklődését! Az alábbiakban részletezzük a(z) ${lead.project_type.toLowerCase()} projekthez készített árajánlatunkat.`
+        : 'Köszönjük érdeklődését! Az alábbiakban részletezzük árajánlatunkat.';
+    } catch (e) { /* ok, kitöltjük üresen */ }
+  }
+
+  const today = new Date().toISOString().split('T')[0];
+  const plus30 = (() => { const d = new Date(); d.setDate(d.getDate() + 30); return d.toISOString().split('T')[0]; })();
+
+  // Tételek szerkesztő
+  window._quoteItems = items.length > 0 ? items.map((it, i) => ({ ...it, _idx: i })) : [{ _idx: 0, name: '', description: '', quantity: 1, unit: 'db', unit_price: 0 }];
+  window._nextItemIdx = window._quoteItems.length;
+
+  const statusOpts = Object.entries(QUOTE_STATUS_LABELS).map(([k, v]) =>
+    `<option value="${k}" ${quote.status === k ? 'selected' : ''}>${v.label}</option>`
+  ).join('');
+
+  showModal(`
+    <h3>${idOrNull ? `Árajánlat: ${escapeHtml(quote.quote_number)}` : 'Új árajánlat'}</h3>
+    ${quote.lead_id ? `<div style="font-size:12px;color:#888;margin-bottom:12px">Érdeklődésből (lead #${quote.lead_id})</div>` : ''}
+
+    <div class="form-row">
+      <div class="form-group"><label>Ügyfél neve *</label><input type="text" id="q-name" value="${escapeHtml(quote.customer_name || '')}"></div>
+      <div class="form-group"><label>Cím</label><input type="text" id="q-address" value="${escapeHtml(quote.customer_address || '')}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Telefon</label><input type="text" id="q-phone" value="${escapeHtml(quote.customer_phone || '')}"></div>
+      <div class="form-group"><label>Email</label><input type="email" id="q-email" value="${escapeHtml(quote.customer_email || '')}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Adószám</label><input type="text" id="q-taxnum" value="${escapeHtml(quote.customer_tax_number || '')}" placeholder="Magánszemélynél üresen hagyható"></div>
+      <div class="form-group"><label>Státusz</label><select id="q-status">${statusOpts}</select></div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group"><label>Kiállítás dátuma</label><input type="date" id="q-issued" value="${quote.issue_date || today}"></div>
+      <div class="form-group"><label>Érvényes eddig</label><input type="date" id="q-valid" value="${quote.valid_until || plus30}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>ÁFA kulcs (%)</label><input type="number" id="q-vat" value="${quote.vat_rate ?? 27}" min="0" max="100"></div>
+      <div class="form-group"><label>Fizetési feltétel</label><input type="text" id="q-payment" value="${escapeHtml(quote.payment_terms || 'Átutalás, 8 napon belül')}"></div>
+    </div>
+
+    <div class="form-group">
+      <label>Bevezető szöveg</label>
+      <textarea id="q-intro" rows="2">${escapeHtml(quote.intro_text || 'Köszönjük érdeklődését! Az alábbiakban részletezzük árajánlatunkat.')}</textarea>
+    </div>
+
+    <hr style="margin:16px 0;border:none;border-top:1px solid #eee">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <h4>Tételek</h4>
+      <button class="btn small" onclick="addQuoteItem()">+ Tétel</button>
+    </div>
+    <div id="q-items-container"></div>
+    <div id="q-totals" style="text-align:right;margin-top:8px;font-size:14px;color:#333"></div>
+
+    <hr style="margin:16px 0;border:none;border-top:1px solid #eee">
+    <div class="form-row">
+      <div class="form-group"><label>Garancia</label><textarea id="q-warranty" rows="2">${escapeHtml(quote.warranty || 'Beépített anyagokra és munkadíjra 1 év garancia.')}</textarea></div>
+      <div class="form-group"><label>Megjegyzés</label><textarea id="q-notes" rows="2">${escapeHtml(quote.notes || '')}</textarea></div>
+    </div>
+
+    <input type="hidden" id="q-lead-id" value="${quote.lead_id || fromLeadId || ''}">
+
+    <div class="modal-actions">
+      ${idOrNull ? `<button class="btn danger" onclick="deleteQuote(${idOrNull})">Törlés</button>` : ''}
+      ${idOrNull ? `<button class="btn" style="background:#6b21a8" onclick="downloadQuotePdf(${idOrNull})">PDF letöltés</button>` : ''}
+      ${idOrNull ? `<button class="btn" style="background:#0ea5e9" onclick="openSendEmailModal(${idOrNull})">📧 Email küldés</button>` : ''}
+      <button class="btn secondary" onclick="closeModal()">Mégse</button>
+      <button class="btn" onclick="saveQuote(${idOrNull || 'null'})">${idOrNull ? 'Mentés' : 'Létrehozás'}</button>
+    </div>
+  `);
+
+  renderQuoteItems();
+}
+
+function renderQuoteItems() {
+  const container = document.getElementById('q-items-container');
+  if (!container) return;
+
+  container.innerHTML = window._quoteItems.map((item, i) => `
+    <div style="background:#f9f9f8;border-radius:8px;padding:10px 12px;margin-bottom:8px;position:relative">
+      <button class="btn small danger" style="position:absolute;top:6px;right:6px;padding:2px 6px;font-size:11px" onclick="removeQuoteItem(${i})" ${window._quoteItems.length <= 1 ? 'disabled' : ''}>×</button>
+      <div class="form-row">
+        <div class="form-group" style="flex:3"><label>Megnevezés *</label><input type="text" class="qi-name" value="${escapeHtml(item.name || '')}" placeholder="Pl. Medence építés"></div>
+        <div class="form-group" style="flex:1"><label>Menny.</label><input type="number" class="qi-qty" value="${item.quantity || 1}" min="0.01" step="0.01" onchange="recalcQuoteItems()"></div>
+        <div class="form-group" style="flex:0.7"><label>Egys.</label><input type="text" class="qi-unit" value="${escapeHtml(item.unit || 'db')}" style="width:100%"></div>
+        <div class="form-group" style="flex:1.2"><label>Egységár (Ft)</label><input type="number" class="qi-price" value="${item.unit_price || 0}" min="0" onchange="recalcQuoteItems()"></div>
+      </div>
+      <div class="form-group" style="margin-bottom:0"><label>Leírás (opcionális)</label><input type="text" class="qi-desc" value="${escapeHtml(item.description || '')}" placeholder="Részletek, specifikáció"></div>
+    </div>
+  `).join('');
+
+  recalcQuoteItems();
+}
+
+function addQuoteItem() {
+  window._quoteItems.push({ _idx: window._nextItemIdx++, name: '', description: '', quantity: 1, unit: 'db', unit_price: 0 });
+  renderQuoteItems();
+}
+
+function removeQuoteItem(idx) {
+  if (window._quoteItems.length <= 1) return;
+  window._quoteItems.splice(idx, 1);
+  renderQuoteItems();
+}
+
+function recalcQuoteItems() {
+  const names = document.querySelectorAll('.qi-name');
+  const qtys = document.querySelectorAll('.qi-qty');
+  const prices = document.querySelectorAll('.qi-price');
+  const vat = Number(document.getElementById('q-vat')?.value || 27);
+
+  let subtotal = 0;
+  names.forEach((_, i) => {
+    const qty = Number(qtys[i]?.value || 0);
+    const price = Number(prices[i]?.value || 0);
+    subtotal += qty * price;
+  });
+
+  const vatAmount = Math.round(subtotal * vat / 100);
+  const total = subtotal + vatAmount;
+
+  const el = document.getElementById('q-totals');
+  if (el) {
+    el.innerHTML = `
+      <div>Nettó: <strong>${subtotal.toLocaleString('hu-HU')} Ft</strong></div>
+      <div>ÁFA (${vat}%): ${vatAmount.toLocaleString('hu-HU')} Ft</div>
+      <div style="font-size:18px;color:#1a4d4a;margin-top:4px"><strong>Összesen: ${total.toLocaleString('hu-HU')} Ft</strong></div>
+    `;
+  }
+}
+
+function collectQuoteItems() {
+  const names = document.querySelectorAll('.qi-name');
+  const descs = document.querySelectorAll('.qi-desc');
+  const qtys = document.querySelectorAll('.qi-qty');
+  const units = document.querySelectorAll('.qi-unit');
+  const prices = document.querySelectorAll('.qi-price');
+
+  const items = [];
+  names.forEach((_, i) => {
+    const name = names[i].value.trim();
+    if (!name) return;
+    items.push({
+      sort_order: i,
+      name,
+      description: descs[i]?.value.trim() || null,
+      quantity: Number(qtys[i]?.value || 1),
+      unit: units[i]?.value.trim() || 'db',
+      unit_price: Number(prices[i]?.value || 0)
+    });
+  });
+  return items;
+}
+
+async function saveQuote(id) {
+  const items = collectQuoteItems();
+  if (items.length === 0) { alert('Legalább egy tétel kell'); return; }
+
+  const data = {
+    customer_name: document.getElementById('q-name').value.trim(),
+    customer_address: document.getElementById('q-address').value.trim() || null,
+    customer_phone: document.getElementById('q-phone').value.trim() || null,
+    customer_email: document.getElementById('q-email').value.trim() || null,
+    customer_tax_number: document.getElementById('q-taxnum').value.trim() || null,
+    status: document.getElementById('q-status').value,
+    issue_date: document.getElementById('q-issued').value,
+    valid_until: document.getElementById('q-valid').value,
+    vat_rate: Number(document.getElementById('q-vat').value || 27),
+    payment_terms: document.getElementById('q-payment').value.trim(),
+    intro_text: document.getElementById('q-intro').value.trim() || null,
+    warranty: document.getElementById('q-warranty').value.trim() || null,
+    notes: document.getElementById('q-notes').value.trim() || null,
+    lead_id: document.getElementById('q-lead-id').value || null,
+    items
+  };
+
+  if (!data.customer_name) { alert('Ügyfél neve kötelező'); return; }
+
+  try {
+    if (id) {
+      await api(`/api/quotes/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+    } else {
+      await api('/api/quotes', { method: 'POST', body: JSON.stringify(data) });
+    }
+    closeModal();
+    loadQuotes();
+    loadDashboard();
+  } catch (e) { alert('Hiba: ' + e.message); }
+}
+
+async function deleteQuote(id) {
+  if (!confirm('Biztosan törlöd az árajánlatot?')) return;
+  try {
+    await api(`/api/quotes/${id}`, { method: 'DELETE' });
+    closeModal();
+    loadQuotes();
+  } catch (e) { alert('Hiba: ' + e.message); }
+}
+
+async function downloadQuotePdf(id) {
+  try {
+    const res = await fetch(`${API}/api/quotes/${id}/pdf`, {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (!res.ok) { const err = await res.json(); alert('Hiba: ' + (err.error || 'PDF generálás sikertelen')); return; }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `JadeWell_ajanlat_${id}.pdf`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  } catch (e) { alert('Hiba: ' + e.message); }
+}
+
+// Lead-ből ajánlat készítés shortcut
+function createQuoteFromLead(leadId) {
+  closeModal();
+  setTimeout(() => openQuoteEditor(null, leadId), 150);
+}
+
+// === EMAIL KÜLDÉS ===
+async function openSendEmailModal(quoteId) {
+  // Először betöltjük az email sablont és ellenőrizzük a konfigurációt
+  let template, emailCheck;
+  try {
+    [template, emailCheck] = await Promise.all([
+      api(`/api/quotes/${quoteId}/email-template`),
+      api('/api/quotes/email/check')
+    ]);
+  } catch (e) { alert('Hiba: ' + e.message); return; }
+
+  if (!emailCheck.configured) {
+    showModal(`
+      <h3>📧 Email küldés</h3>
+      <div class="alert error" style="margin-top:8px">
+        <strong>Email küldés nincs beállítva.</strong>
+      </div>
+      <p style="margin:12px 0;font-size:13px;color:#444;line-height:1.6">
+        Az automata email küldéshez a <code>.env</code> fájlban kell megadnod az SMTP szerver adatait.
+        Részletes útmutató (Gmail / Outlook / saját szerver) a fájlban kommentként található.
+      </p>
+      <p style="font-size:13px;color:#444">
+        <strong>Gyors útmutató:</strong><br>
+        1. Nyisd meg a <code>.env</code> fájlt jegyzettömbben<br>
+        2. Töltsd ki: <code>SMTP_HOST</code>, <code>SMTP_USER</code>, <code>SMTP_PASS</code><br>
+        3. Mentsd el, majd indítsd újra a szervert (Ctrl+C, majd <code>npm start</code>)
+      </p>
+      <div class="modal-actions">
+        <button class="btn secondary" onclick="closeModal()">Bezár</button>
+      </div>
+    `);
+    return;
+  }
+
+  if (!emailCheck.ok) {
+    showModal(`
+      <h3>📧 Email küldés</h3>
+      <div class="alert error" style="margin-top:8px">
+        <strong>Email szerver nem elérhető.</strong><br>
+        ${escapeHtml(emailCheck.error || 'ismeretlen hiba')}
+      </div>
+      <p style="margin:12px 0;font-size:13px;color:#444">
+        Ellenőrizd a <code>.env</code> fájlban az SMTP beállításokat (gyakran a jelszó hibás, vagy app-jelszó kell Gmailnél).
+      </p>
+      <div class="modal-actions">
+        <button class="btn secondary" onclick="closeModal()">Bezár</button>
+      </div>
+    `);
+    return;
+  }
+
+  showModal(`
+    <h3>📧 Email küldés</h3>
+    <div style="font-size:12px;color:#888;margin-bottom:12px">A PDF automatikusan csatolva lesz az emailhez.</div>
+
+    <div class="form-group">
+      <label>Címzett *</label>
+      <input type="email" id="em-to" value="${escapeHtml(template.to || '')}" placeholder="ugyfel@example.com">
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Másolat (CC)</label>
+        <input type="email" id="em-cc" placeholder="opcionális">
+      </div>
+      <div class="form-group">
+        <label>Titkos másolat (BCC)</label>
+        <input type="email" id="em-bcc" placeholder="opcionális">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Tárgy *</label>
+      <input type="text" id="em-subject" value="${escapeHtml(template.subject || '')}">
+    </div>
+
+    <div class="form-group">
+      <label>Üzenet *</label>
+      <textarea id="em-body" rows="14" style="font-family:inherit;font-size:13px;line-height:1.5">${escapeHtml(template.body || '')}</textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn secondary" onclick="closeModal()">Mégse</button>
+      <button class="btn" style="background:#0ea5e9" onclick="sendQuoteEmail(${quoteId})" id="em-send-btn">📧 Küldés</button>
+    </div>
+  `);
+}
+
+async function sendQuoteEmail(quoteId) {
+  const to = document.getElementById('em-to').value.trim();
+  const cc = document.getElementById('em-cc').value.trim();
+  const bcc = document.getElementById('em-bcc').value.trim();
+  const subject = document.getElementById('em-subject').value.trim();
+  const body = document.getElementById('em-body').value.trim();
+
+  if (!to) { alert('A címzett kötelező'); return; }
+  if (!subject) { alert('A tárgy kötelező'); return; }
+  if (!body) { alert('Az üzenet kötelező'); return; }
+
+  const btn = document.getElementById('em-send-btn');
+  btn.disabled = true;
+  btn.textContent = 'Küldés...';
+
+  try {
+    await api(`/api/quotes/${quoteId}/send-email`, {
+      method: 'POST',
+      body: JSON.stringify({ to, cc: cc || null, bcc: bcc || null, subject, body })
+    });
+    closeModal();
+    alert('Email sikeresen elküldve!');
+    loadQuotes();
+  } catch (e) {
+    alert('Hiba: ' + e.message);
+    btn.disabled = false;
+    btn.textContent = '📧 Küldés';
+  }
+}
+
+// === LEADS ===
+const LEAD_STATUS_LABELS = {
+  new: { label: 'Új', color: '#1e40af', bg: '#dbeafe' },
+  survey_scheduled: { label: 'Felmérés egyeztetve', color: '#92400e', bg: '#fef3c7' },
+  quoted: { label: 'Árajánlat kiküldve', color: '#6b21a8', bg: '#f3e8ff' },
+  on_hold: { label: 'Várakozik', color: '#525252', bg: '#f5f5f4' },
+  won: { label: 'Megnyert ✓', color: '#065f46', bg: '#d1fae5' },
+  lost: { label: 'Elutasítva', color: '#991b1b', bg: '#fee2e2' }
+};
+
+function leadStatusBadge(status) {
+  const s = LEAD_STATUS_LABELS[status] || LEAD_STATUS_LABELS.new;
+  return `<span class="badge" style="background:${s.bg};color:${s.color}">${s.label}</span>`;
+}
+
+function leadDueIndicator(lead) {
+  const today = new Date().toISOString().split('T')[0];
+  const dates = [];
+  if (lead.survey_date) {
+    const overdue = lead.survey_date < today && !['won', 'lost'].includes(lead.status);
+    dates.push(`<span style="${overdue ? 'color:#dc2626;font-weight:600' : 'color:#666'};font-size:12px">📅 ${formatDate(lead.survey_date)}: felmérés</span>`);
+  }
+  if (lead.follow_up_date) {
+    const overdue = lead.follow_up_date < today && !['won', 'lost'].includes(lead.status);
+    dates.push(`<span style="${overdue ? 'color:#dc2626;font-weight:600' : 'color:#666'};font-size:12px">📞 ${formatDate(lead.follow_up_date)}: visszahívás</span>`);
+  }
+  return dates.join('<br>');
+}
+
+async function loadLeads() {
+  const params = new URLSearchParams();
+  const status = document.getElementById('filter-lead-status').value;
+  const due = document.getElementById('filter-lead-due').value;
+  const search = document.getElementById('filter-lead-search').value.trim();
+  if (status) params.set('status', status);
+  if (due) params.set('due', due);
+  if (search) params.set('search', search);
+
+  const list = document.getElementById('leads-list');
+  list.innerHTML = '<div class="loading">Betöltés...</div>';
+
+  try {
+    leads = await api('/api/leads?' + params.toString());
+    if (leads.length === 0) {
+      list.innerHTML = '<div class="empty">Nincs érdeklődés a megadott szűrőkkel. Kezdd a "+ Új érdeklődés" gombbal.</div>';
+      return;
+    }
+    list.innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>Érdeklődő</th>
+            <th>Telefon</th>
+            <th>Mit szeretne</th>
+            <th>Esedékesség</th>
+            <th>Becsült érték</th>
+            <th>Státusz</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${leads.map(l => `
+            <tr style="cursor:pointer" onclick="openLeadModal(${l.id})">
+              <td>
+                <strong>${escapeHtml(l.name)}</strong>
+                ${l.address ? `<br><span style="font-size:12px;color:#888">${escapeHtml(l.address)}</span>` : ''}
+              </td>
+              <td>${escapeHtml(l.phone || '-')}</td>
+              <td>${escapeHtml(l.project_type || '-')}</td>
+              <td>${leadDueIndicator(l) || '<span style="color:#bbb">-</span>'}</td>
+              <td>${l.estimated_value ? Number(l.estimated_value).toLocaleString('hu-HU') + ' Ft' : '<span style="color:#bbb">-</span>'}</td>
+              <td>${leadStatusBadge(l.status)}</td>
+              <td onclick="event.stopPropagation()">
+                <button class="btn small secondary" onclick="openLeadModal(${l.id})">Megnéz</button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  } catch (e) {
+    list.innerHTML = `<div class="alert error">Hiba: ${e.message}</div>`;
+  }
+}
+
+async function openLeadModal(id) {
+  let lead = {};
+  let leadQuotes = [];
+  if (id) {
+    try {
+      lead = await api(`/api/leads/${id}`);
+      try { leadQuotes = await api('/api/quotes?lead_id=' + id); } catch(e) {}
+    } catch (e) { alert('Hiba: ' + e.message); return; }
+  }
+
+  const statusOptions = Object.entries(LEAD_STATUS_LABELS).map(([key, v]) =>
+    `<option value="${key}" ${lead.status === key ? 'selected' : ''}>${v.label}</option>`
+  ).join('');
+
+  const isConverted = lead.status === 'won' && lead.converted_partner_id;
+
+  let quotesHtml = '';
+  if (leadQuotes.length > 0) {
+    quotesHtml = `
+      <hr style="margin:16px 0;border:none;border-top:1px solid #eee">
+      <h4 style="margin-bottom:8px">Korábbi árajánlatok</h4>
+      <table style="font-size:13px">
+        <thead><tr><th>Szám</th><th>Összeg</th><th>Státusz</th><th></th></tr></thead>
+        <tbody>
+          ${leadQuotes.map(qi => `
+            <tr>
+              <td>${escapeHtml(qi.quote_number)}</td>
+              <td>${Number(qi.total||0).toLocaleString('hu-HU')} Ft</td>
+              <td>${quoteStatusBadge(qi.status)}</td>
+              <td class="actions-cell">
+                <button class="btn small" onclick="closeModal();setTimeout(()=>openQuoteEditor(${qi.id}),150)">Megnéz</button>
+                <button class="btn small" onclick="downloadQuotePdf(${qi.id})">PDF</button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  showModal(`
+    <h3>${id ? 'Érdeklődés' : 'Új érdeklődés'}</h3>
+    ${isConverted ? `<div class="alert success">✓ Konvertálva partnerré: <strong>${escapeHtml(lead.converted_partner_name || 'partner ID ' + lead.converted_partner_id)}</strong></div>` : ''}
+
+    <div class="form-row">
+      <div class="form-group"><label>Név *</label><input type="text" id="l-name" value="${escapeHtml(lead.name || '')}"></div>
+      <div class="form-group"><label>Telefon</label><input type="text" id="l-phone" value="${escapeHtml(lead.phone || '')}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Email</label><input type="email" id="l-email" value="${escapeHtml(lead.email || '')}"></div>
+      <div class="form-group"><label>Cím</label><input type="text" id="l-address" value="${escapeHtml(lead.address || '')}"></div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Mit szeretne</label>
+        <select id="l-projecttype">
+          <option value="">-- válassz --</option>
+          ${['Beltéri medence', 'Kültéri medence', 'Szauna', 'Kombinált (medence+szauna)', 'Medencefelújítás', 'Szerviz / karbantartás', 'Egyéb'].map(t =>
+            `<option value="${t}" ${lead.project_type === t ? 'selected' : ''}>${t}</option>`
+          ).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Becsült érték (Ft)</label>
+        <input type="number" id="l-value" value="${lead.estimated_value || ''}" placeholder="Pl. 5000000">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Részletek (mit kért, méretek, igények)</label>
+      <textarea id="l-description">${escapeHtml(lead.description || '')}</textarea>
+    </div>
+
+    <hr style="margin:16px 0;border:none;border-top:1px solid #eee">
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Státusz</label>
+        <select id="l-status">${statusOptions}</select>
+      </div>
+      <div class="form-group">
+        <label>Felmérés időpontja</label>
+        <input type="date" id="l-survey" value="${lead.survey_date || ''}">
+      </div>
+      <div class="form-group">
+        <label>Visszahívás dátuma</label>
+        <input type="date" id="l-followup" value="${lead.follow_up_date || ''}">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Belső megjegyzés</label>
+      <textarea id="l-notes">${escapeHtml(lead.notes || '')}</textarea>
+    </div>
+
+    ${id ? quotesHtml : ''}
+
+    <div class="modal-actions">
+      ${id ? `<button class="btn danger" onclick="deleteLead(${id})">Törlés</button>` : ''}
+      ${id ? `<button class="btn" style="background:#6b21a8" onclick="createQuoteFromLead(${id})">📋 Árajánlat készítése</button>` : ''}
+      ${id && !isConverted ? `<button class="btn success" onclick="convertLeadToPartner(${id})">→ Konvertál partnerré</button>` : ''}
+      <button class="btn secondary" onclick="closeModal()">Mégse</button>
+      <button class="btn" onclick="saveLead(${id || 'null'})">Mentés</button>
+    </div>
+  `);
+}
+
+async function saveLead(id) {
+  const data = {
+    name: document.getElementById('l-name').value.trim(),
+    phone: document.getElementById('l-phone').value.trim(),
+    email: document.getElementById('l-email').value.trim(),
+    address: document.getElementById('l-address').value.trim(),
+    project_type: document.getElementById('l-projecttype').value || null,
+    description: document.getElementById('l-description').value.trim() || null,
+    estimated_value: document.getElementById('l-value').value || null,
+    status: document.getElementById('l-status').value,
+    survey_date: document.getElementById('l-survey').value || null,
+    follow_up_date: document.getElementById('l-followup').value || null,
+    notes: document.getElementById('l-notes').value.trim() || null
+  };
+
+  if (!data.name) { alert('A név kötelező'); return; }
+
+  try {
+    if (id) {
+      await api(`/api/leads/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+    } else {
+      await api('/api/leads', { method: 'POST', body: JSON.stringify(data) });
+    }
+    closeModal();
+    loadLeads();
+    loadDashboard();
+  } catch (e) { alert('Hiba: ' + e.message); }
+}
+
+async function deleteLead(id) {
+  if (!confirm('Biztosan törlöd az érdeklődést?')) return;
+  try {
+    await api(`/api/leads/${id}`, { method: 'DELETE' });
+    closeModal();
+    loadLeads();
+    loadDashboard();
+  } catch (e) { alert('Hiba: ' + e.message); }
+}
+
+async function convertLeadToPartner(id) {
+  if (!confirm('Az érdeklődő elfogadta az ajánlatot, és átkerül a Partnerek közé. Folytatod?')) return;
+  try {
+    const result = await api(`/api/leads/${id}/convert`, { method: 'POST' });
+    closeModal();
+    await loadPartners();
+    loadLeads();
+    loadDashboard();
+    alert('Sikeresen konvertálva! Az új partner megtalálható a Partnerek menüpontban.');
+  } catch (e) { alert('Hiba: ' + e.message); }
+}
+
+// === USERS ===
+async function loadUsers() {
+  try {
+    users = await api('/api/admin/users');
+    const list = document.getElementById('users-list');
+    if (users.length === 0) {
+      list.innerHTML = '<div class="empty">Nincs felhasználó.</div>';
+      return;
+    }
+    list.innerHTML = `
+      <table>
+        <thead><tr><th>Név</th><th>Felhasználónév</th><th>Szerep</th><th>Aktív</th><th></th></tr></thead>
+        <tbody>
+          ${users.map(u => `
+            <tr>
+              <td><strong>${escapeHtml(u.name)}</strong></td>
+              <td>${escapeHtml(u.username)}</td>
+              <td><span class="badge ${u.role === 'admin' ? 'admin' : 'tech'}">${u.role === 'admin' ? 'Admin' : 'Szervizes'}</span></td>
+              <td>${u.active ? '✓' : '✗'}</td>
+              <td class="actions-cell">
+                <button class="btn small secondary" onclick="openUserModal(${u.id})">Szerk.</button>
+                ${u.id !== currentUser.id ? `<button class="btn small danger" onclick="deleteUser(${u.id})">Törlés</button>` : ''}
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  } catch (e) {
+    document.getElementById('users-list').innerHTML = `<div class="alert error">Hiba: ${e.message}</div>`;
+  }
+}
+
+function openUserModal(id) {
+  const user = id ? users.find(u => u.id === id) : {};
+  showModal(`
+    <h3>${id ? 'Felhasználó szerkesztése' : 'Új felhasználó'}</h3>
+    <div class="form-group"><label>Név *</label><input type="text" id="u-name" value="${escapeHtml(user.name || '')}"></div>
+    <div class="form-group"><label>Felhasználónév *</label><input type="text" id="u-username" value="${escapeHtml(user.username || '')}" ${id ? 'disabled' : ''}></div>
+    <div class="form-group"><label>Jelszó${id ? ' (üresen hagyva nem változik)' : ' *'}</label><input type="password" id="u-password"></div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Szerep</label>
+        <select id="u-role">
+          <option value="technician" ${user.role === 'technician' ? 'selected' : ''}>Szervizes</option>
+          <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Aktív</label>
+        <select id="u-active">
+          <option value="1" ${user.active !== 0 ? 'selected' : ''}>Igen</option>
+          <option value="0" ${user.active === 0 ? 'selected' : ''}>Nem</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn secondary" onclick="closeModal()">Mégse</button>
+      <button class="btn" onclick="saveUser(${id || 'null'})">Mentés</button>
+    </div>
+  `);
+}
+
+async function saveUser(id) {
+  const data = {
+    name: document.getElementById('u-name').value.trim(),
+    role: document.getElementById('u-role').value,
+    active: document.getElementById('u-active').value === '1'
+  };
+  const password = document.getElementById('u-password').value;
+  if (password) data.password = password;
+
+  if (!id) {
+    data.username = document.getElementById('u-username').value.trim();
+    if (!data.name || !data.username || !password) {
+      alert('Név, felhasználónév és jelszó kötelező');
+      return;
+    }
+  } else if (!data.name) {
+    alert('A név kötelező');
+    return;
+  }
+
+  try {
+    if (id) {
+      await api(`/api/admin/users/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+    } else {
+      await api('/api/admin/users', { method: 'POST', body: JSON.stringify(data) });
+    }
+    closeModal();
+    loadUsers();
+  } catch (e) { alert('Hiba: ' + e.message); }
+}
+
+async function deleteUser(id) {
+  if (!confirm('Biztosan törlöd a felhasználót?')) return;
+  try {
+    await api(`/api/admin/users/${id}`, { method: 'DELETE' });
+    loadUsers();
+  } catch (e) { alert('Hiba: ' + e.message); }
+}
+
+// === REPORTS ===
+async function populateReportPartners() {
+  await loadPartners();
+  document.getElementById('report-partner').innerHTML =
+    '<option value="">-- válassz --</option>' +
+    partners.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+}
+
+async function generateReport() {
+  const partnerId = document.getElementById('report-partner').value;
+  if (!partnerId) { alert('Válassz partnert!'); return; }
+
+  const params = new URLSearchParams();
+  const year = document.getElementById('report-year').value;
+  const month = document.getElementById('report-month').value;
+  const invoiced = document.getElementById('report-invoiced').value;
+  if (year) params.set('year', year);
+  if (month) params.set('month', month);
+  if (invoiced !== '') params.set('invoiced', invoiced);
+
+  try {
+    const res = await fetch(`${API}/api/admin/reports/partner/${partnerId}?${params.toString()}`, {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      alert('Hiba: ' + (err.error || 'PDF generálás sikertelen'));
+      return;
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `JadeWell_riport_${Date.now()}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  } catch (e) { alert('Hiba: ' + e.message); }
+}
+
+// === MODAL ===
+function showModal(html) {
+  document.getElementById('modal-content').innerHTML = html;
+  document.getElementById('modal-bg').style.display = 'flex';
+}
+function closeModal() {
+  document.getElementById('modal-bg').style.display = 'none';
+}
+
+// === PHOTO VIEWER ===
+function openPhoto(url) {
+  document.getElementById('photo-viewer-img').src = url;
+  document.getElementById('photo-viewer').style.display = 'flex';
+}
+function closePhotoViewer() {
+  document.getElementById('photo-viewer').style.display = 'none';
+}
+
+// === HELPERS ===
+function getCurrentTime() {
+  const now = new Date();
+  return String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+}
+function escapeHtml(s) {
+  if (s === null || s === undefined) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function formatDate(s) {
+  if (!s) return '';
+  const d = new Date(s);
+  return d.toLocaleDateString('hu-HU');
+}
+function debounce(fn, delay) {
+  let t;
+  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), delay); };
+}
+
+// === BOOTSTRAP ===
+(async function() {
+  const user = await checkAuth();
+  if (user) {
+    currentUser = user;
+    showApp();
+  } else {
+    document.getElementById('login-screen').style.display = 'flex';
+  }
+})();
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && document.getElementById('login-screen').style.display !== 'none') {
+    doLogin();
+  }
+  if (e.key === 'Escape') {
+    closeModal();
+    closePhotoViewer();
+  }
+});
+</script>
+</body>
+</html>

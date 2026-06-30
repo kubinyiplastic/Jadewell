@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#1a4d4a">
+<title>JadeWell - Szerviz</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f5f4; color: #1a1a1a; min-height: 100vh; font-size: 16px; }
+
+  .topbar { background: #1a4d4a; color: white; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+  .topbar h1 { font-size: 18px; font-weight: 600; letter-spacing: 0.5px; }
+  .topbar .user-info { font-size: 13px; opacity: 0.9; }
+  .topbar button { background: rgba(255,255,255,0.15); color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 13px; cursor: pointer; }
+
+  .container { max-width: 600px; margin: 0 auto; padding: 16px; }
+
+  /* Login screen */
+  .login-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; background: linear-gradient(135deg, #1a4d4a 0%, #2d7a72 100%); }
+  .login-card { background: white; border-radius: 16px; padding: 32px 24px; width: 100%; max-width: 380px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); }
+  .login-card .logo { text-align: center; margin-bottom: 24px; }
+  .login-card .logo h1 { color: #1a4d4a; font-size: 28px; letter-spacing: 1px; margin-bottom: 4px; }
+  .login-card .logo p { color: #888; font-size: 13px; }
+
+  /* Forms */
+  label { display: block; font-size: 13px; color: #666; margin-bottom: 6px; font-weight: 500; }
+  input, select, textarea { width: 100%; padding: 12px 14px; border: 1px solid #d4d4d4; border-radius: 10px; font-size: 16px; background: white; font-family: inherit; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: #1a4d4a; box-shadow: 0 0 0 3px rgba(26,77,74,0.1); }
+  textarea { min-height: 80px; resize: vertical; }
+  .form-group { margin-bottom: 16px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* Buttons */
+  button.btn { background: #1a4d4a; color: white; border: none; padding: 14px 20px; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; width: 100%; transition: transform 0.1s; }
+  button.btn:active { transform: scale(0.98); }
+  button.btn:disabled { background: #9ca3af; cursor: not-allowed; }
+  button.btn.secondary { background: #f0f0ee; color: #333; }
+  button.btn.danger { background: #dc2626; }
+  button.btn.success { background: #059669; }
+
+  .time-now-btn { background: #f0f0ee; color: #333; border: 1px solid #d4d4d4; padding: 0 12px; border-radius: 10px; font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap; }
+  .time-now-btn:active { background: #e0e0de; }
+
+  /* Tabs */
+  .tabs { display: flex; background: white; border-radius: 12px; padding: 4px; margin-bottom: 16px; gap: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+  .tab { flex: 1; padding: 10px; text-align: center; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; color: #666; }
+  .tab.active { background: #1a4d4a; color: white; }
+
+  /* Cards */
+  .card { background: white; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+  .card h3 { font-size: 16px; margin-bottom: 8px; color: #1a4d4a; }
+  .card .muted { color: #888; font-size: 13px; }
+  .card .row { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 100px; font-size: 11px; font-weight: 600; }
+  .badge.invoiced { background: #d1fae5; color: #065f46; }
+  .badge.pending { background: #fef3c7; color: #92400e; }
+
+  /* Section */
+  .section-title { font-size: 14px; font-weight: 600; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin: 20px 0 8px; padding: 0 4px; }
+
+  /* Photo grid */
+  .photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 8px; }
+  .photo-grid img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px; cursor: pointer; }
+
+  .file-button { display: block; padding: 14px; background: #f0f0ee; border: 2px dashed #c4c4c4; border-radius: 10px; text-align: center; cursor: pointer; color: #666; font-size: 14px; }
+  .file-button:hover { background: #e8e8e6; }
+  input[type="file"] { display: none; }
+
+  .upload-preview { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 12px; }
+  .upload-preview .item { position: relative; aspect-ratio: 1; }
+  .upload-preview img { width: 100%; height: 100%; object-fit: cover; border-radius: 6px; }
+  .upload-preview .remove { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.7); color: white; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 14px; cursor: pointer; line-height: 1; }
+
+  .alert { padding: 12px 16px; border-radius: 10px; margin-bottom: 16px; font-size: 14px; }
+  .alert.error { background: #fee2e2; color: #991b1b; }
+  .alert.success { background: #d1fae5; color: #065f46; }
+
+  .empty { text-align: center; padding: 40px 20px; color: #888; }
+
+  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+  .modal { background: white; border-radius: 16px; padding: 20px; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; }
+  .modal h2 { font-size: 20px; margin-bottom: 16px; color: #1a4d4a; }
+  .modal-actions { display: flex; gap: 8px; margin-top: 16px; }
+  .modal-actions button { flex: 1; }
+
+  .photo-viewer { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: flex; align-items: center; justify-content: center; z-index: 2000; }
+  .photo-viewer img { max-width: 100%; max-height: 90vh; }
+  .photo-viewer .close { position: absolute; top: 20px; right: 20px; background: white; border: none; border-radius: 50%; width: 40px; height: 40px; font-size: 20px; cursor: pointer; }
+
+  .filter-bar { background: white; padding: 12px; border-radius: 12px; margin-bottom: 12px; display: flex; gap: 8px; align-items: center; }
+  .filter-bar select { padding: 8px 10px; font-size: 14px; }
+
+  .loading { text-align: center; padding: 40px; color: #888; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen" class="login-screen">
+  <div class="login-card">
+    <div class="logo">
+      <h1>JadeWell</h1>
+      <p>Szerviz felület</p>
+    </div>
+    <div id="login-error" class="alert error" style="display:none"></div>
+    <div class="form-group">
+      <label>Felhasználónév</label>
+      <input type="text" id="login-username" autocomplete="username" autocapitalize="none">
+    </div>
+    <div class="form-group">
+      <label>Jelszó</label>
+      <input type="password" id="login-password" autocomplete="current-password">
+    </div>
+    <button class="btn" onclick="doLogin()">Bejelentkezés</button>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app" style="display:none">
+  <div class="topbar">
+    <div>
+      <h1>JadeWell</h1>
+      <div class="user-info" id="user-name"></div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <a id="admin-link" href="/admin" style="display:none;background:#fbbf24;color:#1a1a1a;padding:6px 12px;border-radius:6px;text-decoration:none;font-size:13px;font-weight:600">Admin →</a>
+      <button onclick="logout()">Kilép</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="tabs">
+      <div class="tab active" data-tab="new" onclick="switchTab('new')">Új munka</div>
+      <div class="tab" data-tab="list" onclick="switchTab('list')">Munkáim</div>
+    </div>
+
+    <!-- NEW JOB TAB -->
+    <div id="tab-new">
+      <div id="new-alert"></div>
+      <div class="card">
+        <h3>Munka rögzítése</h3>
+
+        <div class="form-group" style="margin-top:12px">
+          <label>Partner *</label>
+          <select id="job-partner">
+            <option value="">-- válassz --</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Dátum *</label>
+          <input type="date" id="job-date">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Érkezés</label>
+            <div style="display:flex;gap:6px">
+              <input type="time" id="job-arrived" style="flex:1">
+              <button type="button" class="time-now-btn" onclick="setTimeNow('job-arrived')">Most</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Távozás</label>
+            <div style="display:flex;gap:6px">
+              <input type="time" id="job-left" style="flex:1">
+              <button type="button" class="time-now-btn" onclick="setTimeNow('job-left')">Most</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Szerelők (vesszővel)</label>
+          <input type="text" id="job-technicians" placeholder="Pl. András, Béla">
+        </div>
+
+        <div class="form-group">
+          <label>Mit végeztünk?</label>
+          <textarea id="job-description" placeholder="Pl. Medence vízminta vétele, klórszint beállítása, szűrő tisztítása..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Beépített anyagok</label>
+          <textarea id="job-materials" placeholder="Pl. 2 db szűrőbetét, 5 kg klór tabletta..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Fotók (opcionális)</label>
+          <label for="photo-input" class="file-button">
+            📷 Képek kiválasztása vagy fotózás
+          </label>
+          <input type="file" id="photo-input" accept="image/*" multiple capture="environment" onchange="handlePhotoSelect(event)">
+          <div id="photo-preview" class="upload-preview"></div>
+        </div>
+
+        <button class="btn" onclick="submitJob()" id="submit-btn">Munka mentése</button>
+      </div>
+    </div>
+
+    <!-- LIST TAB -->
+    <div id="tab-list" style="display:none">
+      <div class="filter-bar">
+        <select id="filter-year" onchange="loadJobs()">
+          <option value="">Minden év</option>
+        </select>
+        <select id="filter-month" onchange="loadJobs()">
+          <option value="">Minden hónap</option>
+          <option value="01">Január</option>
+          <option value="02">Február</option>
+          <option value="03">Március</option>
+          <option value="04">Április</option>
+          <option value="05">Május</option>
+          <option value="06">Június</option>
+          <option value="07">Július</option>
+          <option value="08">Augusztus</option>
+          <option value="09">Szeptember</option>
+          <option value="10">Október</option>
+          <option value="11">November</option>
+          <option value="12">December</option>
+        </select>
+      </div>
+      <div id="jobs-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- JOB DETAIL MODAL -->
+<div id="job-modal" class="modal-bg" style="display:none" onclick="if(event.target===this) closeJobModal()">
+  <div class="modal" id="job-modal-content"></div>
+</div>
+
+<!-- PHOTO VIEWER -->
+<div id="photo-viewer" class="photo-viewer" style="display:none" onclick="closePhotoViewer()">
+  <button class="close">×</button>
+  <img id="photo-viewer-img">
+</div>
+
+<script>
+const API = '';
+let token = localStorage.getItem('jw_token');
+let currentUser = null;
+let partners = [];
+let selectedPhotos = [];
+
+// === AUTH ===
+async function doLogin() {
+  const username = document.getElementById('login-username').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+
+  if (!username || !password) {
+    errEl.textContent = 'Felhasználónév és jelszó kötelező';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  try {
+    const res = await fetch(API + '/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      errEl.textContent = data.error || 'Hiba';
+      errEl.style.display = 'block';
+      return;
+    }
+    token = data.token;
+    currentUser = data.user;
+    localStorage.setItem('jw_token', token);
+    localStorage.setItem('jw_user', JSON.stringify(currentUser));
+    showApp();
+  } catch (e) {
+    errEl.textContent = 'Hálózati hiba: ' + e.message;
+    errEl.style.display = 'block';
+  }
+}
+
+function logout() {
+  localStorage.removeItem('jw_token');
+  localStorage.removeItem('jw_user');
+  token = null;
+  currentUser = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+}
+
+async function checkAuth() {
+  if (!token) return false;
+  try {
+    const res = await fetch(API + '/api/auth/me', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (!res.ok) return false;
+    currentUser = JSON.parse(localStorage.getItem('jw_user'));
+    return true;
+  } catch (e) { return false; }
+}
+
+async function showApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('user-name').textContent = currentUser.name;
+
+  // Admin gomb csak adminoknak
+  if (currentUser.role === 'admin') {
+    document.getElementById('admin-link').style.display = 'inline-block';
+  }
+
+  resetJobForm();
+
+  await loadPartners();
+  await loadYears();
+}
+
+function getCurrentTime() {
+  const now = new Date();
+  return String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+}
+
+function resetJobForm() {
+  // Mai dátum default
+  document.getElementById('job-date').value = new Date().toISOString().split('T')[0];
+  // Aktuális idő alapból az érkezésbe (a szervizes a helyszínen tölti ki)
+  document.getElementById('job-arrived').value = getCurrentTime();
+  document.getElementById('job-left').value = '';
+  // Jelenlegi felhasználó név alapból a szerelők mezőbe
+  document.getElementById('job-technicians').value = currentUser.name;
+  document.getElementById('job-partner').value = '';
+  document.getElementById('job-description').value = '';
+  document.getElementById('job-materials').value = '';
+  selectedPhotos = [];
+  renderPhotoPreview();
+}
+
+// === API HELPER ===
+async function api(path, options = {}) {
+  const res = await fetch(API + path, {
+    ...options,
+    headers: {
+      'Authorization': 'Bearer ' + token,
+      ...(options.body && !(options.body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}),
+      ...(options.headers || {})
+    }
+  });
+  if (res.status === 401) {
+    logout();
+    throw new Error('Lejárt a bejelentkezés');
+  }
+  const data = res.headers.get('content-type')?.includes('json') ? await res.json() : null;
+  if (!res.ok) throw new Error((data && data.error) || 'API hiba');
+  return data;
+}
+
+// === TABS ===
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.getElementById('tab-new').style.display = tab === 'new' ? 'block' : 'none';
+  document.getElementById('tab-list').style.display = tab === 'list' ? 'block' : 'none';
+  if (tab === 'list') loadJobs();
+}
+
+// === PARTNERS ===
+async function loadPartners() {
+  try {
+    partners = await api('/api/partners');
+    const sel = document.getElementById('job-partner');
+    sel.innerHTML = '<option value="">-- válassz --</option>' +
+      partners.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+  } catch (e) {
+    showAlert('new-alert', 'Hiba a partnerek betöltésekor: ' + e.message, 'error');
+  }
+}
+
+// === PHOTOS ===
+function handlePhotoSelect(event) {
+  const files = Array.from(event.target.files);
+  for (const f of files) {
+    selectedPhotos.push(f);
+  }
+  renderPhotoPreview();
+  event.target.value = '';
+}
+
+function renderPhotoPreview() {
+  const c = document.getElementById('photo-preview');
+  c.innerHTML = '';
+  selectedPhotos.forEach((f, i) => {
+    const url = URL.createObjectURL(f);
+    const div = document.createElement('div');
+    div.className = 'item';
+    div.innerHTML = `
+      <img src="${url}">
+      <button class="remove" onclick="removePhoto(${i})" type="button">×</button>
+    `;
+    c.appendChild(div);
+  });
+}
+
+function removePhoto(idx) {
+  selectedPhotos.splice(idx, 1);
+  renderPhotoPreview();
+}
+
+// === JOB SUBMIT ===
+async function submitJob() {
+  const data = {
+    partner_id: document.getElementById('job-partner').value,
+    job_date: document.getElementById('job-date').value,
+    arrived_at: document.getElementById('job-arrived').value || null,
+    left_at: document.getElementById('job-left').value || null,
+    technicians: document.getElementById('job-technicians').value || null,
+    description: document.getElementById('job-description').value || null,
+    materials_installed: document.getElementById('job-materials').value || null
+  };
+
+  if (!data.partner_id || !data.job_date) {
+    showAlert('new-alert', 'Partner és dátum kötelező', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Mentés...';
+
+  try {
+    const job = await api('/api/jobs', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+
+    // Képek feltöltése
+    if (selectedPhotos.length > 0) {
+      btn.textContent = `Képek feltöltése (0/${selectedPhotos.length})...`;
+      const fd = new FormData();
+      selectedPhotos.forEach(f => fd.append('photos', f));
+      await api(`/api/jobs/${job.id}/photos`, {
+        method: 'POST',
+        body: fd
+      });
+    }
+
+    showAlert('new-alert', 'Munka sikeresen rögzítve!', 'success');
+    resetJobForm();
+
+    setTimeout(() => {
+      const a = document.getElementById('new-alert');
+      a.innerHTML = '';
+    }, 3000);
+  } catch (e) {
+    showAlert('new-alert', 'Hiba: ' + e.message, 'error');
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Munka mentése';
+}
+
+// === JOBS LIST ===
+async function loadYears() {
+  // Az évek a job_date alapján kerülnek listázásra; egyelőre az aktuális + 2 előző
+  const now = new Date().getFullYear();
+  const sel = document.getElementById('filter-year');
+  sel.innerHTML = '<option value="">Minden év</option>' +
+    [now, now-1, now-2, now-3].map(y => `<option value="${y}">${y}</option>`).join('');
+}
+
+async function loadJobs() {
+  const list = document.getElementById('jobs-list');
+  list.innerHTML = '<div class="loading">Betöltés...</div>';
+
+  const params = new URLSearchParams();
+  const year = document.getElementById('filter-year').value;
+  const month = document.getElementById('filter-month').value;
+  if (year) params.set('year', year);
+  if (month) params.set('month', month);
+
+  try {
+    const jobs = await api('/api/jobs?' + params.toString());
+    if (jobs.length === 0) {
+      list.innerHTML = '<div class="empty">Nincs munka a megadott szűrőkkel.</div>';
+      return;
+    }
+
+    list.innerHTML = jobs.map(j => `
+      <div class="card" onclick="openJobModal(${j.id})">
+        <div class="row" style="margin-top:0">
+          <h3>${escapeHtml(j.partner_name)}</h3>
+          <span class="badge ${j.invoiced ? 'invoiced' : 'pending'}">${j.invoiced ? '✓ Számlázva' : 'Nincs számlázva'}</span>
+        </div>
+        <div class="muted">${formatDate(j.job_date)}${j.arrived_at ? ` · ${j.arrived_at}` : ''}${j.left_at ? ` - ${j.left_at}` : ''}</div>
+        ${j.description ? `<p style="margin-top:8px;font-size:14px">${escapeHtml(j.description.substring(0, 100))}${j.description.length > 100 ? '...' : ''}</p>` : ''}
+        ${j.photo_count > 0 ? `<div class="muted" style="margin-top:6px">📷 ${j.photo_count} kép</div>` : ''}
+      </div>
+    `).join('');
+  } catch (e) {
+    list.innerHTML = `<div class="alert error">Hiba: ${e.message}</div>`;
+  }
+}
+
+// === JOB DETAIL MODAL ===
+async function openJobModal(jobId) {
+  const modal = document.getElementById('job-modal');
+  const content = document.getElementById('job-modal-content');
+  content.innerHTML = '<div class="loading">Betöltés...</div>';
+  modal.style.display = 'flex';
+
+  try {
+    const job = await api(`/api/jobs/${jobId}`);
+    content.innerHTML = `
+      <h2>${escapeHtml(job.partner_name)}</h2>
+      <div class="muted" style="margin-bottom:12px">${formatDate(job.job_date)}</div>
+
+      ${job.partner_address ? `<div style="margin-bottom:8px"><strong>Cím:</strong> ${escapeHtml(job.partner_address)}</div>` : ''}
+      ${job.arrived_at || job.left_at ? `<div style="margin-bottom:8px"><strong>Idő:</strong> ${job.arrived_at || '—'} – ${job.left_at || '—'}</div>` : ''}
+      ${job.technicians ? `<div style="margin-bottom:8px"><strong>Szerelők:</strong> ${escapeHtml(job.technicians)}</div>` : ''}
+
+      ${job.description ? `
+        <div style="margin-top:12px">
+          <strong>Elvégzett munka:</strong>
+          <p style="margin-top:4px;color:#444">${escapeHtml(job.description).replace(/\n/g, '<br>')}</p>
+        </div>
+      ` : ''}
+
+      ${job.materials_installed ? `
+        <div style="margin-top:12px">
+          <strong>Beépített anyagok:</strong>
+          <p style="margin-top:4px;color:#444">${escapeHtml(job.materials_installed).replace(/\n/g, '<br>')}</p>
+        </div>
+      ` : ''}
+
+      <div style="margin-top:12px">
+        <span class="badge ${job.invoiced ? 'invoiced' : 'pending'}">${job.invoiced ? '✓ Számlázva' : 'Nincs számlázva'}</span>
+      </div>
+
+      ${job.photos && job.photos.length > 0 ? `
+        <div style="margin-top:16px">
+          <strong>Fotók (${job.photos.length})</strong>
+          <div class="photo-grid">
+            ${job.photos.map(p => `<img src="/uploads/${p.filename}" onclick="event.stopPropagation();openPhoto('/uploads/${p.filename}')">`).join('')}
+          </div>
+        </div>
+      ` : ''}
+
+      <div style="margin-top:16px;padding-top:16px;border-top:1px solid #eee">
+        <label>Fotó hozzáadása ehhez a munkához:</label>
+        <label for="add-photo-input-${job.id}" class="file-button" style="margin-top:8px">
+          📷 Képek hozzáadása
+        </label>
+        <input type="file" id="add-photo-input-${job.id}" accept="image/*" multiple capture="environment" onchange="addPhotosToJob(${job.id}, event)">
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn secondary" onclick="closeJobModal()">Bezár</button>
+      </div>
+    `;
+  } catch (e) {
+    content.innerHTML = `<div class="alert error">Hiba: ${e.message}</div><button class="btn secondary" onclick="closeJobModal()">Bezár</button>`;
+  }
+}
+
+async function addPhotosToJob(jobId, event) {
+  const files = Array.from(event.target.files);
+  if (files.length === 0) return;
+
+  const fd = new FormData();
+  files.forEach(f => fd.append('photos', f));
+
+  try {
+    await api(`/api/jobs/${jobId}/photos`, {
+      method: 'POST',
+      body: fd
+    });
+    openJobModal(jobId); // újratöltés
+  } catch (e) {
+    alert('Hiba: ' + e.message);
+  }
+}
+
+function closeJobModal() {
+  document.getElementById('job-modal').style.display = 'none';
+}
+
+// === PHOTO VIEWER ===
+function openPhoto(url) {
+  document.getElementById('photo-viewer-img').src = url;
+  document.getElementById('photo-viewer').style.display = 'flex';
+}
+function closePhotoViewer() {
+  document.getElementById('photo-viewer').style.display = 'none';
+}
+
+// === HELPERS ===
+function setTimeNow(inputId) {
+  document.getElementById(inputId).value = getCurrentTime();
+}
+
+function escapeHtml(s) {
+  if (!s) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function formatDate(s) {
+  if (!s) return '';
+  const d = new Date(s);
+  return d.toLocaleDateString('hu-HU', { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+function showAlert(containerId, message, type) {
+  const c = document.getElementById(containerId);
+  c.innerHTML = `<div class="alert ${type}">${escapeHtml(message)}</div>`;
+}
+
+// === BOOTSTRAP ===
+(async function() {
+  if (await checkAuth()) {
+    showApp();
+  } else {
+    document.getElementById('login-screen').style.display = 'flex';
+  }
+})();
+
+// Enter a login mezőkben
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && document.getElementById('login-screen').style.display !== 'none') {
+    doLogin();
+  }
+});
+</script>
+</body>
+</html>

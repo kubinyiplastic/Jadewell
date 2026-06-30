@@ -1,0 +1,6 @@
+node_modules/
+.env
+jadewell.db
+uploads/*
+!uploads/.gitkeep
+*.log
