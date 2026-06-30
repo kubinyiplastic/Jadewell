@@ -253,4 +253,32 @@ router.get('/report/partner/:id/pdf', async (req, res) => {
   }
 });
 
+// Statisztikák a dashboardhoz
+router.get('/stats', async (req, res) => {
+  try {
+    const { pool } = db;
+    const [totalJobs, totalPartners, notInvoiced, thisMonth, notInvoicedAmount, activeLeads, overdueLeads, pipelineValue] = await Promise.all([
+      pool.query('SELECT COUNT(*) as c FROM jobs'),
+      pool.query('SELECT COUNT(*) as c FROM partners'),
+      pool.query('SELECT COUNT(*) as c FROM jobs WHERE invoiced = 0'),
+      pool.query("SELECT COUNT(*) as c FROM jobs WHERE SUBSTR(job_date, 1, 7) = TO_CHAR(NOW(), 'YYYY-MM')"),
+      pool.query('SELECT COALESCE(SUM(invoice_amount), 0) as total FROM jobs WHERE invoiced = 0 AND invoice_amount IS NOT NULL'),
+      pool.query("SELECT COUNT(*) as c FROM leads WHERE status NOT IN ('won', 'lost')"),
+      pool.query("SELECT COUNT(*) as c FROM leads WHERE status NOT IN ('won', 'lost') AND ((survey_date < CURRENT_DATE::text AND survey_date IS NOT NULL) OR (follow_up_date < CURRENT_DATE::text AND follow_up_date IS NOT NULL))"),
+      pool.query("SELECT COALESCE(SUM(estimated_value), 0) as v FROM leads WHERE status NOT IN ('won', 'lost') AND estimated_value IS NOT NULL")
+    ]);
+
+    res.json({
+      total_jobs: parseInt(totalJobs.rows[0].c),
+      total_partners: parseInt(totalPartners.rows[0].c),
+      not_invoiced: parseInt(notInvoiced.rows[0].c),
+      this_month: parseInt(thisMonth.rows[0].c),
+      not_invoiced_amount: parseFloat(notInvoicedAmount.rows[0].total),
+      active_leads: parseInt(activeLeads.rows[0].c),
+      overdue_leads: parseInt(overdueLeads.rows[0].c),
+      pipeline_value: parseFloat(pipelineValue.rows[0].v)
+    });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 module.exports = router;
