@@ -122,7 +122,7 @@ router.delete('/users/:id', async (req, res) => {
 });
 
 // PDF munkariport egy partnerhez
-router.get('/report/partner/:id/pdf', async (req, res) => {
+router.get(['/reports/partner/:id', '/reports/partner/:id/pdf'], async (req, res) => {
   try {
     const { year, month, invoiced } = req.query;
 
@@ -279,6 +279,8 @@ router.get('/stats', async (req, res) => {
       pipeline_value: parseFloat(pipelineValue.rows[0].v)
     });
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 });
 
 module.exports = router;
