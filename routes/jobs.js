@@ -1,19 +1,16 @@
 const express = require('express');
 const path = require('path');
-const { createClient } = require('@supabase/supabase-js');
+const fetch = (...args) => import('node-fetch').then(({default: f}) => f(...args));
 const db = require('../database/db');
 const { authenticate } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Supabase Storage client (képfeltöltéshez)
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
-);
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const BUCKET = 'job-photos';
 
-// Multer memóriában tartja a fájlokat (nem írja lemezre)
+// Multer – memóriában tartja a fájlokat
 const multer = require('multer');
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -25,6 +22,33 @@ const upload = multer({
     else cb(new Error('Csak képfájl tölthető fel'));
   }
 });
+
+// Supabase Storage feltöltés natív fetch-el (Node 18 kompatibilis)
+async function uploadToStorage(buffer, storagePath, mimeType) {
+  const url = `${SUPABASE_URL}/storage/v1/object/${BUCKET}/${storagePath}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+      'Content-Type': mimeType,
+      'x-upsert': 'false'
+    },
+    body: buffer
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error('Storage feltöltési hiba: ' + err);
+  }
+  return `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${storagePath}`;
+}
+
+async function deleteFromStorage(storagePath) {
+  const url = `${SUPABASE_URL}/storage/v1/object/${BUCKET}/${storagePath}`;
+  await fetch(url, {
+    method: 'DELETE',
+    headers: { 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` }
+  });
+}
 
 // Munkák listája
 router.get('/', authenticate, async (req, res) => {
@@ -56,7 +80,6 @@ router.get('/', authenticate, async (req, res) => {
     const result = await pool.query(sql, params);
     const jobs = result.rows;
 
-    // Képszámok
     for (const j of jobs) {
       const r = await pool.query('SELECT COUNT(*) as c FROM job_photos WHERE job_id = $1', [j.id]);
       j.photo_count = parseInt(r.rows[0].c);
@@ -79,11 +102,7 @@ router.get('/:id', authenticate, async (req, res) => {
     `).get(req.params.id);
 
     if (!job) return res.status(404).json({ error: 'Munka nem található' });
-
-    job.photos = await db.prepare(
-      'SELECT * FROM job_photos WHERE job_id = ? ORDER BY uploaded_at'
-    ).all(req.params.id);
-
+    job.photos = await db.prepare('SELECT * FROM job_photos WHERE job_id = ? ORDER BY uploaded_at').all(req.params.id);
     res.json(job);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -91,24 +110,15 @@ router.get('/:id', authenticate, async (req, res) => {
 // Új munka
 router.post('/', authenticate, async (req, res) => {
   try {
-    const {
-      partner_id, job_date, arrived_at, left_at,
-      description, materials_installed, technicians
-    } = req.body;
-
-    if (!partner_id || !job_date) {
-      return res.status(400).json({ error: 'Partner és dátum kötelező' });
-    }
+    const { partner_id, job_date, arrived_at, left_at, description, materials_installed, technicians } = req.body;
+    if (!partner_id || !job_date) return res.status(400).json({ error: 'Partner és dátum kötelező' });
 
     const result = await db.prepare(`
       INSERT INTO jobs (partner_id, job_date, arrived_at, left_at,
                         description, materials_installed, technicians, created_by)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      partner_id, job_date, arrived_at || null, left_at || null,
-      description || null, materials_installed || null,
-      technicians || null, req.user.id
-    );
+    `).run(partner_id, job_date, arrived_at || null, left_at || null,
+           description || null, materials_installed || null, technicians || null, req.user.id);
 
     const job = await db.prepare('SELECT * FROM jobs WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json(job);
@@ -118,31 +128,22 @@ router.post('/', authenticate, async (req, res) => {
 // Munka módosítása
 router.put('/:id', authenticate, async (req, res) => {
   try {
-    const {
-      partner_id, job_date, arrived_at, left_at,
-      description, materials_installed, technicians,
-      invoiced, invoice_number, invoice_amount
-    } = req.body;
+    const { partner_id, job_date, arrived_at, left_at, description, materials_installed,
+            technicians, invoiced, invoice_number, invoice_amount } = req.body;
 
     const job = await db.prepare('SELECT * FROM jobs WHERE id = ?').get(req.params.id);
     if (!job) return res.status(404).json({ error: 'Munka nem található' });
 
     const isAdmin = req.user.role === 'admin';
-
     await db.prepare(`
-      UPDATE jobs
-      SET partner_id = ?, job_date = ?, arrived_at = ?, left_at = ?,
+      UPDATE jobs SET partner_id = ?, job_date = ?, arrived_at = ?, left_at = ?,
           description = ?, materials_installed = ?, technicians = ?,
-          invoiced = ?, invoice_number = ?, invoice_amount = ?,
-          updated_at = NOW()
+          invoiced = ?, invoice_number = ?, invoice_amount = ?, updated_at = NOW()
       WHERE id = ?
     `).run(
-      partner_id ?? job.partner_id,
-      job_date ?? job.job_date,
-      arrived_at ?? job.arrived_at,
-      left_at ?? job.left_at,
-      description ?? job.description,
-      materials_installed ?? job.materials_installed,
+      partner_id ?? job.partner_id, job_date ?? job.job_date,
+      arrived_at ?? job.arrived_at, left_at ?? job.left_at,
+      description ?? job.description, materials_installed ?? job.materials_installed,
       technicians ?? job.technicians,
       isAdmin ? (invoiced ? 1 : 0) : job.invoiced,
       isAdmin ? (invoice_number ?? job.invoice_number) : job.invoice_number,
@@ -155,21 +156,14 @@ router.put('/:id', authenticate, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// Munka törlése (csak admin)
+// Munka törlése
 router.delete('/:id', authenticate, async (req, res) => {
   try {
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Csak admin törölhet' });
-    }
+    if (req.user.role !== 'admin') return res.status(403).json({ error: 'Csak admin törölhet' });
 
-    // Képek törlése Supabase Storage-ból
-    const photos = await db.prepare(
-      'SELECT storage_path FROM job_photos WHERE job_id = ?'
-    ).all(req.params.id);
-
-    const paths = photos.map(p => p.storage_path).filter(Boolean);
-    if (paths.length > 0) {
-      await supabase.storage.from(BUCKET).remove(paths);
+    const photos = await db.prepare('SELECT storage_path FROM job_photos WHERE job_id = ?').all(req.params.id);
+    for (const p of photos) {
+      if (p.storage_path) await deleteFromStorage(p.storage_path);
     }
 
     await db.prepare('DELETE FROM job_photos WHERE job_id = ?').run(req.params.id);
@@ -178,14 +172,12 @@ router.delete('/:id', authenticate, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// Képfeltöltés Supabase Storage-ba
+// Képfeltöltés
 router.post('/:id/photos', authenticate, upload.array('photos', 20), async (req, res) => {
   try {
     const job = await db.prepare('SELECT id FROM jobs WHERE id = ?').get(req.params.id);
     if (!job) return res.status(404).json({ error: 'Munka nem található' });
-    if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ error: 'Nincs feltöltött fájl' });
-    }
+    if (!req.files || req.files.length === 0) return res.status(400).json({ error: 'Nincs feltöltött fájl' });
 
     const inserted = [];
     for (const file of req.files) {
@@ -193,18 +185,7 @@ router.post('/:id/photos', authenticate, upload.array('photos', 20), async (req,
       const ext = path.extname(file.originalname).toLowerCase();
       const storagePath = `job-${req.params.id}/job-${unique}${ext}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from(BUCKET)
-        .upload(storagePath, file.buffer, {
-          contentType: file.mimetype,
-          upsert: false
-        });
-
-      if (uploadError) throw new Error('Storage hiba: ' + uploadError.message);
-
-      const { data: { publicUrl } } = supabase.storage
-        .from(BUCKET)
-        .getPublicUrl(storagePath);
+      const publicUrl = await uploadToStorage(file.buffer, storagePath, file.mimetype);
 
       const result = await db.prepare(`
         INSERT INTO job_photos (job_id, filename, original_name, storage_path, public_url, uploaded_by)
@@ -232,17 +213,13 @@ router.delete('/:jobId/photos/:photoId', authenticate, async (req, res) => {
     ).get(req.params.photoId, req.params.jobId);
 
     if (!photo) return res.status(404).json({ error: 'Kép nem található' });
-
-    if (photo.storage_path) {
-      await supabase.storage.from(BUCKET).remove([photo.storage_path]);
-    }
-
+    if (photo.storage_path) await deleteFromStorage(photo.storage_path);
     await db.prepare('DELETE FROM job_photos WHERE id = ?').run(req.params.photoId);
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// Képek listázása egy munkához
+// Képek listázása
 router.get('/:id/photos', authenticate, async (req, res) => {
   try {
     const photos = await db.prepare(
